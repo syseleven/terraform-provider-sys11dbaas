@@ -1,0 +1,447 @@
+{
+	"provider": {
+		"name": "sys11dbaas"
+	},
+	"resources": [
+		{
+			"name": "database",
+			"schema": {
+				"attributes": [
+					{
+						"name": "application_config",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "instances",
+									"int64": {
+										"computed_optional_required": "required",
+										"description": "How many nodes the cluster should have",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.AtMost(5)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "password",
+									"string": {
+										"computed_optional_required": "computed_optional",
+										"description": "The password for the admin user",
+										"sensitive": true,
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+														}
+													],
+													"schema_definition": "stringvalidator.LengthAtLeast(16)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "recovery",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "exclusive",
+												"bool": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "source",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "target_lsn",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "target_name",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "target_time",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											},
+											{
+												"name": "target_xid",
+												"string": {
+													"computed_optional_required": "computed_optional"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "scheduled_backups",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "retention",
+												"int64": {
+													"computed_optional_required": "computed_optional",
+													"default": {
+														"static": 7
+													},
+													"description": "How long Backups should be stored",
+													"validators": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.Between(7, 90)"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "schedule",
+												"single_nested": {
+													"computed_optional_required": "computed_optional",
+													"attributes": [
+														{
+															"name": "hour",
+															"int64": {
+																"computed_optional_required": "computed_optional",
+																"description": "The hour when the full backup should start. If this value is omitted, a random hour between 1am and 5am will be generated.",
+																"validators": [
+																	{
+																		"custom": {
+																			"imports": [
+																				{
+																					"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																				}
+																			],
+																			"schema_definition": "int64validator.Between(0, 23)"
+																		}
+																	}
+																]
+															}
+														},
+														{
+															"name": "minute",
+															"int64": {
+																"computed_optional_required": "computed_optional",
+																"description": "The minute when the full backup should start. If this value is omitted, a random minute will be generated.",
+																"validators": [
+																	{
+																		"custom": {
+																			"imports": [
+																				{
+																					"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																				}
+																			],
+																			"schema_definition": "int64validator.Between(0, 59)"
+																		}
+																	}
+																]
+															}
+														}
+													],
+													"description": "The schedules for the backup policy."
+												}
+											}
+										],
+										"description": "The scheduled backup policy for the database."
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "required"
+									}
+								},
+								{
+									"name": "version",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "minor version of postgresql"
+									}
+								},
+								{
+									"name": "hostname",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The dns name of the database in the format uuid.postgresql.syseleven.services."
+									}
+								},
+								{
+									"name": "ip_address",
+									"string": {
+										"computed_optional_required": "computed",
+										"description": "The public IP address of the database. It will be pending if no address has been assigned yet."
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "description",
+						"string": {
+							"computed_optional_required": "computed_optional",
+							"default": {
+								"static": ""
+							},
+							"description": "fulltext description of the database",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthBetween(0, 128)"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "name",
+						"string": {
+							"computed_optional_required": "required",
+							"description": "The name of the database.",
+							"validators": [
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.LengthBetween(1, 64)"
+									}
+								},
+								{
+									"custom": {
+										"imports": [
+											{
+												"path": "regexp"
+											},
+											{
+												"path": "github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+											}
+										],
+										"schema_definition": "stringvalidator.RegexMatches(regexp.MustCompile(\"^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$\"), \"\")"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "service_config",
+						"single_nested": {
+							"computed_optional_required": "required",
+							"attributes": [
+								{
+									"name": "disksize",
+									"int64": {
+										"computed_optional_required": "required",
+										"description": "Disksize in GB",
+										"validators": [
+											{
+												"custom": {
+													"imports": [
+														{
+															"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+														}
+													],
+													"schema_definition": "int64validator.Between(5, 500)"
+												}
+											}
+										]
+									}
+								},
+								{
+									"name": "flavor",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "vm flavor to use"
+									}
+								},
+								{
+									"name": "maintenance_window",
+									"single_nested": {
+										"computed_optional_required": "computed_optional",
+										"attributes": [
+											{
+												"name": "day_of_week",
+												"int64": {
+													"computed_optional_required": "computed_optional",
+													"description": "Day of week as a cron time (0=Sun, 1=Mon, ..., 7=Sun). If omitted, a random day will be used.",
+													"validators": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.Between(0, 6)"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "start_hour",
+												"int64": {
+													"computed_optional_required": "computed_optional",
+													"description": "Hour when the maintenance window starts. If omitted, a random hour between 20 and 4 will be used.",
+													"validators": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.Between(0, 23)"
+															}
+														}
+													]
+												}
+											},
+											{
+												"name": "start_minute",
+												"int64": {
+													"computed_optional_required": "computed_optional",
+													"description": "Minute when the maintenance window starts. If omitted, a random minute will be used.",
+													"validators": [
+														{
+															"custom": {
+																"imports": [
+																	{
+																		"path": "github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+																	}
+																],
+																"schema_definition": "int64validator.Between(0, 59)"
+															}
+														}
+													]
+												}
+											}
+										],
+										"description": "The maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated."
+									}
+								},
+								{
+									"name": "region",
+									"string": {
+										"computed_optional_required": "required",
+										"description": "the region for the database"
+									}
+								},
+								{
+									"name": "remote_ips",
+									"list": {
+										"computed_optional_required": "computed_optional",
+										"element_type": {
+											"string": {}
+										},
+										"description": "List of IP addresses, that should be allowed to connect to the database"
+									}
+								},
+								{
+									"name": "type",
+									"string": {
+										"computed_optional_required": "required"
+									}
+								}
+							]
+						}
+					},
+					{
+						"name": "created_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "the date when the database was created"
+						}
+					},
+					{
+						"name": "created_by",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "the initial creator of the database"
+						}
+					},
+					{
+						"name": "last_modified_at",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "the date when the database was last modified"
+						}
+					},
+					{
+						"name": "last_modified_by",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "the user who last changed of the database"
+						}
+					},
+					{
+						"name": "phase",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "resource_status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "status",
+						"string": {
+							"computed_optional_required": "computed"
+						}
+					},
+					{
+						"name": "uuid",
+						"string": {
+							"computed_optional_required": "computed",
+							"description": "The UUID of the database."
+						}
+					},
+					{
+						"name": "db_uuid",
+						"string": {
+							"computed_optional_required": "computed_optional"
+						}
+					}
+				]
+			}
+		}
+	],
+	"version": "0.1"
+}

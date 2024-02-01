@@ -1,0 +1,16 @@
+provider:
+  name: sys11dbaas
+resources:
+  database:
+    create:
+      path: /{org_id}/{project_id}/v1/databases
+      method: POST
+    read:
+      path: /{org_id}/{project_id}/v1/databases/{db_uuid}
+      method: GET
+    update:
+      path: /{org_id}/{project_id}/v1/databases/{db_uuid}
+      method: PUT
+    delete:
+      path: /{org_id}/{project_id}/v1/databases/{db_uuid}
+      method: DELETE
