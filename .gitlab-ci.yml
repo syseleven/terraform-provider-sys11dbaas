@@ -36,3 +36,14 @@ terraform-validate:
   extends:
     - .terraform-validate
 
+
+tfplugindocs:
+  image: golang:1.22.3
+  before_script:
+    - apt update && apt install -y unzip
+    - wget -O /tmp/tfplugindocs.zip https://github.com/hashicorp/terraform-plugin-docs/releases/download/v0.19.2/tfplugindocs_0.19.2_linux_amd64.zip
+    - unzip -p /tmp/tfplugindocs.zip tfplugindocs > /usr/local/bin/tfplugindocs
+    - chmod 0555 /usr/local/bin/tfplugindocs
+  script:
+    - tfplugindocs
+    - if [[ ! -z "$(git status -s)" ]]; then echo "Found documentation files. Please run tfplugindocs locally and commit changes." && git diff && exit 1; fi

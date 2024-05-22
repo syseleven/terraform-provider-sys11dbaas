@@ -56,21 +56,28 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"url": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de",
 			},
 			"api_key": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.",
 			},
 			"organization": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
+				//TODO: Is this the name or UUID?
 			},
 			"project": schema.StringAttribute{
-				Required: true,
+				Required:    true,
+				Description: "If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
+				//TODO: Is this the name or UUID?
 			},
 			"wait_for_creation": schema.BoolAttribute{
 				Required:    true,
 				Optional:    false,
-				Description: "Wait until databases are fully deployed and usable",
+				Description: "Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used.",
+				// TODO: Whats the default?
 			},
 		},
 	}
@@ -132,8 +139,12 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 
 	// Default values to environment variables, but override
 	// with Terraform configuration value if set.
+	var url string
+	var set bool
+	if url, set = os.LookupEnv("SYS11DBAAS_URL"); !set {
+		url = "https://dbaas.apis.syseleven.de"
+	}
 
-	url := os.Getenv("SYS11DBAAS_URL")
 	apikey := os.Getenv("SYS11DBAAS_API_KEY")
 	organization := os.Getenv("SYS11DBAAS_ORGANIZATION")
 	project := os.Getenv("SYS11DBAAS_PROJECT")
