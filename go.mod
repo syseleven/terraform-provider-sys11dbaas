@@ -7,10 +7,8 @@ require (
 	github.com/hashicorp/terraform-plugin-framework-validators v0.12.0
 	github.com/hashicorp/terraform-plugin-go v0.22.0
 	github.com/hashicorp/terraform-plugin-log v0.9.0
-	github.com/syseleven/sys11dbaas-sdk v0.0.0-00010101000000-000000000000
+	github.com/syseleven/sys11dbaas-sdk v0.0.0-20240522090808-8b604f684bcb
 )
-
-replace github.com/syseleven/sys11dbaas-sdk => ../sys11dbaas-sdk
 
 require (
 	github.com/fatih/color v1.16.0 // indirect
