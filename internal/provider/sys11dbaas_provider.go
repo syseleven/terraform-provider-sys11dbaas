@@ -251,15 +251,15 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	// type Configure methods.
 	resp.DataSourceData = &sys11DBaaSProviderData{
 		client:          client,
-		project:         config.Project,
-		organization:    config.Organization,
-		waitForCreation: config.WaitForCreation,
+		project:         types.StringValue(project),
+		organization:    types.StringValue(organization),
+		waitForCreation: types.BoolValue(waitForCreation),
 	}
 	resp.ResourceData = &sys11DBaaSProviderData{
 		client:          client,
-		project:         config.Project,
-		organization:    config.Organization,
-		waitForCreation: config.WaitForCreation,
+		project:         types.StringValue(project),
+		organization:    types.StringValue(organization),
+		waitForCreation: types.BoolValue(waitForCreation),
 	}
 
 	tflog.Info(ctx, "Configured Sys11DBaaS client", map[string]any{"success": true})
