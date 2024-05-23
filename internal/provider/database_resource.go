@@ -88,13 +88,26 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		Project:      r.project.ValueString(),
 	}
 
-	psqlDB, err := r.client.GetPostgreSQLDB(psqlRequest)
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Read database",
-			err.Error(),
-		)
-		return
+	var psqlDB *sys11dbaassdk.GetPostgreSQLResponse
+	var err error
+	errCount := 0
+	for {
+		psqlDB, err = r.client.GetPostgreSQLDB(psqlRequest)
+		if err != nil {
+			errCount++
+			if errCount >= 3 {
+				resp.Diagnostics.AddError(
+					"Unable to Read database",
+					err.Error(),
+				)
+				return
+			}
+			tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
+			continue
+		} else {
+			errCount = 0
+			break
+		}
 	}
 
 	diags = psqlGetResponseToModel(ctx, psqlDB, &state, state)
@@ -220,8 +233,9 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			UUID:         createResponse.UUID,
 		}
 		sleepFor := time.Duration(30 * time.Second)
-		for retryLimit := 0; targetState.Status.ValueString() != sys11dbaassdk.STATE_READY; {
-			if retryLimit == int((CREATE_RETRY_LIMIT / sleepFor).Abs()) {
+		errCount := 0
+		for retryCount := 0; targetState.Status.ValueString() != sys11dbaassdk.STATE_READY; {
+			if retryCount == int((CREATE_RETRY_LIMIT / sleepFor).Abs()) {
 				diags = resp.State.Set(ctx, &targetState)
 				resp.Diagnostics.Append(diags...)
 				resp.Diagnostics.AddError("RetryLimit reached during wait_for_creation", "The retry limit of "+CREATE_RETRY_LIMIT.String()+" was reached while waiting for creation of database")
@@ -230,18 +244,24 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			time.Sleep(sleepFor)
 			getResponse, err := r.client.GetPostgreSQLDB(getRequest)
 			if err != nil {
-				resp.Diagnostics.AddError(
-					"Error read database during wait",
-					"Could not read database during wait, unexpected error: "+err.Error(),
-				)
-				return
+				errCount++
+				if errCount >= 3 {
+					resp.Diagnostics.AddError(
+						"Error read database during wait",
+						"Could not read database during wait, unexpected error: "+err.Error(),
+					)
+					return
+				}
+				tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
+				continue
 			}
+			errCount = 0
 			diags = psqlGetResponseToModel(ctx, getResponse, &targetState, plan)
 
 			ctx = tflog.SetField(ctx, "create_target_state", &targetState)
 			tflog.Debug(ctx, "[CREATE] Current creation state", nil)
 			resp.Diagnostics.Append(diags...)
-			retryLimit++
+			retryCount++
 		}
 	}
 
@@ -380,6 +400,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
+	errCount := 0
 	for i := 0; i < 10; i++ {
 		time.Sleep(2 * time.Second) // give DBaaS time to propagate changes
 		tflog.Debug(ctx, "wait 2 seconds to give DBaaS time to propagate", nil)
@@ -392,12 +413,18 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 		getResponse, err := r.client.GetPostgreSQLDB(getRequest)
 		if err != nil {
-			resp.Diagnostics.AddError(
-				"Error reading updated database",
-				"Could not read updated database, unexpected error: "+err.Error(),
-			)
-			return
+			errCount++
+			if errCount >= 3 {
+				resp.Diagnostics.AddError(
+					"Error reading updated database",
+					"Could not read updated database, unexpected error: "+err.Error(),
+				)
+				return
+			}
+			tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
+			continue
 		}
+		errCount = 0
 
 		// Map response body to schema and populate Computed attribute values
 		targetState := DatabaseModel{}
