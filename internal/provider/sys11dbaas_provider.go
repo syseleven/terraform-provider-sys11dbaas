@@ -56,22 +56,24 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 	resp.Schema = schema.Schema{
 		Attributes: map[string]schema.Attribute{
 			"url": schema.StringAttribute{
-				Required:    true,
+				Required:    false,
+				Optional:    true,
 				Description: "URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de",
 			},
 			"api_key": schema.StringAttribute{
 				Required:    true,
+				Optional:    false,
 				Description: "API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.",
 			},
 			"organization": schema.StringAttribute{
 				Required:    true,
-				Description: "If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
-				//TODO: Is this the name or UUID?
+				Optional:    false,
+				Description: "The ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
 			},
 			"project": schema.StringAttribute{
 				Required:    true,
-				Description: "If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
-				//TODO: Is this the name or UUID?
+				Optional:    false,
+				Description: "The ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
 			},
 			"wait_for_creation": schema.BoolAttribute{
 				Required:    true,
