@@ -25,11 +25,9 @@ variable "org" {
 }
 
 provider "sys11dbaas" {
-  url               = var.api_url
-  api_key           = var.api_key
-  project           = var.project
-  organization      = var.org
-  wait_for_creation = "true"
+  api_key      = var.api_key
+  project      = var.project
+  organization = var.org
 }
 
 resource "sys11dbaas_database" "my_first_tf_db" {

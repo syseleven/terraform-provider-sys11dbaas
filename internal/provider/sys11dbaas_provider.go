@@ -76,10 +76,9 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Description: "The ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
 			},
 			"wait_for_creation": schema.BoolAttribute{
-				Required:    true,
-				Optional:    false,
-				Description: "Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used.",
-				// TODO: Whats the default?
+				Required:    false,
+				Optional:    true,
+				Description: "Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used. Defaults to true",
 			},
 		},
 	}
@@ -150,7 +149,13 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	apikey := os.Getenv("SYS11DBAAS_API_KEY")
 	organization := os.Getenv("SYS11DBAAS_ORGANIZATION")
 	project := os.Getenv("SYS11DBAAS_PROJECT")
-	waitForCreation, _ := strconv.ParseBool(os.Getenv("SYS11DBAAS_WAIT_FOR_CREATION"))
+
+	var waitForCreation bool
+	if waitForCreationEnv, set := os.LookupEnv("SYS11DBAAS_WAIT_FOR_CREATION"); !set {
+		waitForCreation = true
+	} else {
+		waitForCreation, _ = strconv.ParseBool(waitForCreationEnv)
+	}
 
 	if !config.URL.IsNull() {
 		url = config.URL.ValueString()
