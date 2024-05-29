@@ -61,18 +61,18 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Description: "URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de",
 			},
 			"api_key": schema.StringAttribute{
-				Required:    true,
-				Optional:    false,
+				Required:    false,
+				Optional:    true,
 				Description: "API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.",
 			},
 			"organization": schema.StringAttribute{
-				Required:    true,
-				Optional:    false,
+				Required:    false,
+				Optional:    true,
 				Description: "ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
 			},
 			"project": schema.StringAttribute{
-				Required:    true,
-				Optional:    false,
+				Required:    false,
+				Optional:    true,
 				Description: "ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
 			},
 			"wait_for_creation": schema.BoolAttribute{
@@ -194,8 +194,8 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 		resp.Diagnostics.AddAttributeError(
 			path.Root("api_key"),
 			"Missing Sys11DBaaS API ApiKey",
-			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS API username. "+
-				"Set the username value in the configuration or use the SYS11DBAAS_USERNAME environment variable. "+
+			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS API ApiKey. "+
+				"Set the api_key value in the configuration or use the SYS11DBAAS_API_KEY environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -203,9 +203,9 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	if organization == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("organization"),
-			"Missing Sys11DBaaS API ApiKey",
-			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS API username. "+
-				"Set the username value in the configuration or use the SYS11DBAAS_USERNAME environment variable. "+
+			"Missing Sys11DBaaS organization",
+			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS organization. "+
+				"Set the organization value in the configuration or use the SYS11DBAAS_ORGANIZATION environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}
@@ -213,9 +213,9 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	if project == "" {
 		resp.Diagnostics.AddAttributeError(
 			path.Root("project"),
-			"Missing Sys11DBaaS API ApiKey",
-			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS API username. "+
-				"Set the username value in the configuration or use the SYS11DBAAS_USERNAME environment variable. "+
+			"Missing Sys11DBaaS project",
+			"The provider cannot create the Sys11DBaaS API client as there is a missing or empty value for the Sys11DBaaS project. "+
+				"Set the project value in the configuration or use the SYS11DBAAS_PROJECT environment variable. "+
 				"If either is already set, ensure the value is not empty.",
 		)
 	}

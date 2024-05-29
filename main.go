@@ -39,8 +39,7 @@ func main() {
 	flag.Parse()
 
 	opts := providerserver.ServeOpts{
-		// TODO: Update this string with the published name of your provider.
-		Address: "github.com/syseleven/terraform-provider-sys11dbaas",
+		Address: "registry.terraform.io/syseleven/sys11dbaas",
 		Debug:   debug,
 	}
 
