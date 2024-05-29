@@ -307,7 +307,10 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 						},
 					},
 					"type": schema.StringAttribute{
-						Required: true,
+						Optional:    true,
+						Computed:    true,
+						Description: "Type of the service you want to create (default `database`)",
+						Default:     stringdefault.StaticString("database"),
 					},
 				},
 				Required: true,

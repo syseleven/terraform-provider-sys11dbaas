@@ -48,7 +48,6 @@ resource "sys11dbaas_database" "my_first_tf_db" {
     disksize = 25
     flavor   = "m2c.small"
     region   = "dus2"
-    type     = "database"
     remote_ips = [
       "0.0.0.0/0"
     ]
