@@ -7,6 +7,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
@@ -64,55 +65,56 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 					"recovery": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
 							"exclusive": schema.BoolAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "Set to true, when the given target should be excluded.",
-						    MarkdownDescription: "Set to true, when the given target should be excluded.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "Set to true, when the given target should be excluded.",
+								MarkdownDescription: "Set to true, when the given target should be excluded.",
+								Default:             booldefault.StaticBool(false),
 								PlanModifiers: []planmodifier.Bool{
 									boolplanmodifier.UseStateForUnknown(),
 								},
 							},
 							"source": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "UUID of the source database.",
-						    MarkdownDescription: "UUID of the source database.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "UUID of the source database.",
+								MarkdownDescription: "UUID of the source database.",
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
 								},
 							},
 							"target_lsn": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
-						    MarkdownDescription: "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								MarkdownDescription: "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
 								},
 							},
 							"target_name": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
-						    MarkdownDescription: "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
+								MarkdownDescription: "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
 								},
 							},
 							"target_time": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
-						    MarkdownDescription: "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
+								MarkdownDescription: "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
 								},
 							},
 							"target_xid": schema.StringAttribute{
-								Optional: true,
-								Computed: true,
-						    Description:         "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
-						    MarkdownDescription: "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								Optional:            true,
+								Computed:            true,
+								Description:         "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								MarkdownDescription: "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
 								PlanModifiers: []planmodifier.String{
 									stringplanmodifier.UseStateForUnknown(),
 								},
@@ -178,7 +180,7 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 						MarkdownDescription: "Scheduled backups policy for the database.",
 					},
 					"type": schema.StringAttribute{
-						Required: true,
+						Required:            true,
 						Description:         "Type of the database. Currently only supports 'postgresql'.",
 						MarkdownDescription: "Type of the database. Currently only supports 'postgresql'.",
 					},
@@ -316,17 +318,17 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 				Required: true,
 			},
 			"status": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
 				Description:         "Overall status of the database.",
 				MarkdownDescription: "Overall status of the database.",
 			},
 			"phase": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
 				Description:         "Detailed status of the database.",
 				MarkdownDescription: "Detailed status of the database.",
 			},
 			"resource_status": schema.StringAttribute{
-				Computed: true,
+				Computed:            true,
 				Description:         "Sync status of the database.",
 				MarkdownDescription: "Sync status of the database.",
 			},
