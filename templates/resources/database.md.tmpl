@@ -8,7 +8,10 @@ description: |-
 
 # {{.Name}} ({{.Type}})
 
-
 {{ .Description | trimspace }}
+
+## Example Usage
+
+{{ tffile "examples/postgresql/simple.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
