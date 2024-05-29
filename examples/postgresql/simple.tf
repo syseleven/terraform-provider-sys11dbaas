@@ -10,6 +10,5 @@ resource "sys11dbaas_database" "postgresql" {
     disksize = 25
     flavor   = "m2c.small"
     region   = "dus2"
-    type     = "database"
   }
 }
