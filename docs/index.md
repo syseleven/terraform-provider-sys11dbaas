@@ -29,8 +29,8 @@ provider "sys11dbaas" {
 ### Required
 
 - `api_key` (String) API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.
-- `organization` (String) The ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.
-- `project` (String) The ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
+- `organization` (String) ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.
+- `project` (String) ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
 
 ### Optional
 

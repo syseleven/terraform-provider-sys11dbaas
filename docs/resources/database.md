@@ -36,55 +36,55 @@ resource "sys11dbaas_database" "postgresql" {
 ### Required
 
 - `application_config` (Attributes) (see [below for nested schema](#nestedatt--application_config))
-- `name` (String) The name of the database.
+- `name` (String) Name of the database.
 - `service_config` (Attributes) (see [below for nested schema](#nestedatt--service_config))
 
 ### Optional
 
-- `description` (String) fulltext description of the database
+- `description` (String) Fulltext description of the database.
 
 ### Read-Only
 
-- `created_at` (String) the date when the database was created
-- `created_by` (String) the initial creator of the database
-- `last_modified_at` (String) the date when the database was last modified
-- `last_modified_by` (String) the user who last changed of the database
-- `phase` (String)
-- `resource_status` (String)
-- `status` (String)
-- `uuid` (String) The UUID of the database.
+- `created_at` (String) Date when the database was created.
+- `created_by` (String) Initial creator of the database.
+- `last_modified_at` (String) Date when the database was last modified.
+- `last_modified_by` (String) User who last changed of the database.
+- `phase` (String) Detailed status of the database.
+- `resource_status` (String) Sync status of the database.
+- `status` (String) Overall status of the database.
+- `uuid` (String) UUID of the database.
 
 <a id="nestedatt--application_config"></a>
 ### Nested Schema for `application_config`
 
 Required:
 
-- `instances` (Number) How many nodes the cluster should have
-- `type` (String)
-- `version` (String) minor version of postgresql
+- `instances` (Number) Node count of the database cluster.
+- `type` (String) Type of the database. Currently only supports 'postgresql'.
+- `version` (String) Minor version of PostgreSQL.
 
 Optional:
 
-- `password` (String, Sensitive) The password for the admin user
+- `password` (String, Sensitive) Password for the admin user.
 - `recovery` (Attributes) (see [below for nested schema](#nestedatt--application_config--recovery))
-- `scheduled_backups` (Attributes) The scheduled backup policy for the database. (see [below for nested schema](#nestedatt--application_config--scheduled_backups))
+- `scheduled_backups` (Attributes) Scheduled backups policy for the database. (see [below for nested schema](#nestedatt--application_config--scheduled_backups))
 
 Read-Only:
 
-- `hostname` (String) The dns name of the database in the format uuid.postgresql.syseleven.services.
-- `ip_address` (String) The public IP address of the database. It will be pending if no address has been assigned yet.
+- `hostname` (String) DNS name of the database in the format uuid.postgresql.syseleven.services.
+- `ip_address` (String) Public IP address of the database. It will be pending if no address has been assigned yet.
 
 <a id="nestedatt--application_config--recovery"></a>
 ### Nested Schema for `application_config.recovery`
 
 Optional:
 
-- `exclusive` (Boolean)
-- `source` (String)
-- `target_lsn` (String)
-- `target_name` (String)
-- `target_time` (String)
-- `target_xid` (String)
+- `exclusive` (Boolean) Set to true, when the given target should be excluded.
+- `source` (String) UUID of the source database.
+- `target_lsn` (String) LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.
+- `target_name` (String) Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.
+- `target_time` (String) Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.
+- `target_xid` (String) Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.
 
 
 <a id="nestedatt--application_config--scheduled_backups"></a>
@@ -92,16 +92,16 @@ Optional:
 
 Optional:
 
-- `retention` (Number) How long Backups should be stored
-- `schedule` (Attributes) The schedules for the backup policy. (see [below for nested schema](#nestedatt--application_config--scheduled_backups--schedule))
+- `retention` (Number) Duration in days for which backups should be stored.
+- `schedule` (Attributes) Schedules for the backup policy. (see [below for nested schema](#nestedatt--application_config--scheduled_backups--schedule))
 
 <a id="nestedatt--application_config--scheduled_backups--schedule"></a>
 ### Nested Schema for `application_config.scheduled_backups.schedule`
 
 Optional:
 
-- `hour` (Number) The hour when the full backup should start. If this value is omitted, a random hour between 1am and 5am will be generated.
-- `minute` (Number) The minute when the full backup should start. If this value is omitted, a random minute will be generated.
+- `hour` (Number) Hour when the full backup should start. If this value is omitted, a random hour between 1am and 5am will be generated.
+- `minute` (Number) Minute when the full backup should start. If this value is omitted, a random minute will be generated.
 
 
 
@@ -111,15 +111,15 @@ Optional:
 
 Required:
 
-- `disksize` (Number) Disksize in GB
-- `flavor` (String) vm flavor to use
-- `region` (String) the region for the database
+- `disksize` (Number) Disksize in GB.
+- `flavor` (String) VM flavor to use.
+- `region` (String) Region for the database.
 - `type` (String)
 
 Optional:
 
-- `maintenance_window` (Attributes) The maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
-- `remote_ips` (List of String) List of IP addresses, that should be allowed to connect to the database
+- `maintenance_window` (Attributes) Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
+- `remote_ips` (List of String) List of IP addresses, that should be allowed to connect to the database.
 
 <a id="nestedatt--service_config--maintenance_window"></a>
 ### Nested Schema for `service_config.maintenance_window`

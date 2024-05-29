@@ -68,12 +68,12 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 			"organization": schema.StringAttribute{
 				Required:    true,
 				Optional:    false,
-				Description: "The ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
+				Description: "ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.",
 			},
 			"project": schema.StringAttribute{
 				Required:    true,
 				Optional:    false,
-				Description: "The ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
+				Description: "ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
 			},
 			"wait_for_creation": schema.BoolAttribute{
 				Required:    false,
