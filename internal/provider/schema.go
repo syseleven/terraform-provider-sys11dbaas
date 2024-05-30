@@ -42,8 +42,8 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 					},
 					"ip_address": schema.StringAttribute{
 						Computed:            true,
-						Description:         "Public IP address of the database. It will be pending if no address has been assigned yet.",
-						MarkdownDescription: "Public IP address of the database. It will be pending if no address has been assigned yet.",
+						Description:         "Public IP address of the database. It will be 'Pending' if no address has been assigned yet.",
+						MarkdownDescription: "Public IP address of the database. It will be 'Pending' if no address has been assigned yet.",
 						PlanModifiers: []planmodifier.String{
 							stringplanmodifier.UseStateForUnknown(),
 						},
@@ -226,8 +226,8 @@ func DatabaseResourceSchema(ctx context.Context) schema.Schema {
 			},
 			"last_modified_by": schema.StringAttribute{
 				Computed:            true,
-				Description:         "User who last changed of the database.",
-				MarkdownDescription: "User who last changed of the database.",
+				Description:         "User who last changed the database.",
+				MarkdownDescription: "User who last changed the database.",
 			},
 			"name": schema.StringAttribute{
 				Required:            true,

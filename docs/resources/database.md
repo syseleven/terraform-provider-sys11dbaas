@@ -48,7 +48,7 @@ resource "sys11dbaas_database" "postgresql" {
 - `created_at` (String) Date when the database was created.
 - `created_by` (String) Initial creator of the database.
 - `last_modified_at` (String) Date when the database was last modified.
-- `last_modified_by` (String) User who last changed of the database.
+- `last_modified_by` (String) User who last changed the database.
 - `phase` (String) Detailed status of the database.
 - `resource_status` (String) Sync status of the database.
 - `status` (String) Overall status of the database.
@@ -72,7 +72,7 @@ Optional:
 Read-Only:
 
 - `hostname` (String) DNS name of the database in the format uuid.postgresql.syseleven.services.
-- `ip_address` (String) Public IP address of the database. It will be pending if no address has been assigned yet.
+- `ip_address` (String) Public IP address of the database. It will be 'Pending' if no address has been assigned yet.
 
 <a id="nestedatt--application_config--recovery"></a>
 ### Nested Schema for `application_config.recovery`
