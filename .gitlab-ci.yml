@@ -38,7 +38,7 @@ terraform-validate:
 
 
 tfplugindocs:
-  image: golang:1.22.3
+  image: golang:1.23.4
   before_script:
     - apt update && apt install -y unzip
     - wget -O /tmp/tfplugindocs.zip https://github.com/hashicorp/terraform-plugin-docs/releases/download/v0.19.2/tfplugindocs_0.19.2_linux_amd64.zip
