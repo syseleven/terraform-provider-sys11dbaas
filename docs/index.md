@@ -17,9 +17,9 @@ terraform {
 }
 
 provider "sys11dbaas" {
-  api_key      = var.api_key
-  project      = var.project
-  organization = var.org
+  api_key      = "s11_prak_..."
+  project      = "0123456789"
+  organization = "0123-456-78-9"
 }
 ```
 
