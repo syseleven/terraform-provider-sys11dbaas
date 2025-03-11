@@ -1,3 +1,5 @@
+terraform-provider-sys11dbaas
+
 *.tfstate
 *.tfstate.backup
 .terraform

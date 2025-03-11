@@ -33,3 +33,11 @@ provider "sys11dbaas" {
 - `project` (String) ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
 - `url` (String) URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de
 - `wait_for_creation` (Boolean) Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used. Defaults to true
+
+## Debug logging
+
+You can enable debug logging by setting the environment variable `SYS11DBAAS_SDK_DEBUG=true` additionally to `TF_LOG=DEBUG`:
+
+```shell
+SYS11DBAAS_SDK_DEBUG=true TF_LOG_PROVIDER=DEBUG terraform apply
+```

@@ -1,5 +1,7 @@
 # terraform-provider-sys11dbaas
 
+[[_TOC_]]
+
 ## Generator
 
 This project was initially generated using [terraform-plugin-codegen-openapi](https://github.com/hashicorp/terraform-plugin-codegen-openapi)
@@ -43,6 +45,14 @@ provider "sys11dbaas" {
 ```
 
 Don't forget to run `go install` again after code changes.
+
+## Debug logging
+
+You can enable debug logging by setting the environment variable `SYS11DBAAS_SDK_DEBUG=true` additionally to `TF_LOG=DEBUG`:
+
+```shell
+SYS11DBAAS_SDK_DEBUG=true TF_LOG_PROVIDER=DEBUG terraform apply
+```
 
 ## Generate docs
 

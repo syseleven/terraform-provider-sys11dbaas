@@ -10,3 +10,11 @@ description: |-
 {{ tffile "examples/provider/provider.tf" }}
 
 {{ .SchemaMarkdown | trimspace }}
+
+## Debug logging
+
+You can enable debug logging by setting the environment variable `SYS11DBAAS_SDK_DEBUG=true` additionally to `TF_LOG=DEBUG`:
+
+```shell
+SYS11DBAAS_SDK_DEBUG=true TF_LOG_PROVIDER=DEBUG terraform apply
+```
