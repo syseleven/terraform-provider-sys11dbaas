@@ -13,14 +13,14 @@ import (
 	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
 )
 
-var _ basetypes.ObjectTypable = ApplicationConfigType{}
+var _ basetypes.ObjectTypable = ApplicationConfigTypeV2{}
 
-type ApplicationConfigType struct {
+type ApplicationConfigTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t ApplicationConfigType) Equal(o attr.Type) bool {
-	other, ok := o.(ApplicationConfigType)
+func (t ApplicationConfigTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(ApplicationConfigTypeV2)
 
 	if !ok {
 		return false
@@ -29,32 +29,14 @@ func (t ApplicationConfigType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ApplicationConfigType) String() string {
-	return "ApplicationConfigType"
+func (t ApplicationConfigTypeV2) String() string {
+	return "ApplicationConfigTypeV2"
 }
 
-func (t ApplicationConfigType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ApplicationConfigTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
-
-	hostnameAttribute, ok := attributes["hostname"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`hostname is missing from object`)
-
-		return nil, diags
-	}
-
-	hostnameVal, ok := hostnameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`hostname expected to be basetypes.StringValue, was: %T`, hostnameAttribute))
-	}
 
 	instancesAttribute, ok := attributes["instances"]
 
@@ -72,24 +54,6 @@ func (t ApplicationConfigType) ValueFromObject(ctx context.Context, in basetypes
 		diags.AddError(
 			"Attribute Wrong Type",
 			fmt.Sprintf(`instances expected to be basetypes.Int64Value, was: %T`, instancesAttribute))
-	}
-
-	ipAddressAttribute, ok := attributes["ip_address"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`ip_address is missing from object`)
-
-		return nil, diags
-	}
-
-	ipAddressVal, ok := ipAddressAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`ip_address expected to be basetypes.StringValue, was: %T`, ipAddressAttribute))
 	}
 
 	passwordAttribute, ok := attributes["password"]
@@ -186,10 +150,8 @@ func (t ApplicationConfigType) ValueFromObject(ctx context.Context, in basetypes
 		return nil, diags
 	}
 
-	return ApplicationConfigValue{
-		Hostname:              hostnameVal,
+	return ApplicationConfigValueV2{
 		Instances:             instancesVal,
-		IpAddress:             ipAddressVal,
 		Password:              passwordVal,
 		Recovery:              recoveryVal,
 		ScheduledBackups:      scheduledBackupsVal,
@@ -199,19 +161,19 @@ func (t ApplicationConfigType) ValueFromObject(ctx context.Context, in basetypes
 	}, diags
 }
 
-func NewApplicationConfigValueNull() ApplicationConfigValue {
-	return ApplicationConfigValue{
+func NewApplicationConfigValueV2Null() ApplicationConfigValueV2 {
+	return ApplicationConfigValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewApplicationConfigValueUnknown() ApplicationConfigValue {
-	return ApplicationConfigValue{
+func NewApplicationConfigValueV2Unknown() ApplicationConfigValueV2 {
+	return ApplicationConfigValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ApplicationConfigValue, diag.Diagnostics) {
+func NewApplicationConfigValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ApplicationConfigValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -259,25 +221,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 	}
 
 	if diags.HasError() {
-		return NewApplicationConfigValueUnknown(), diags
-	}
-
-	hostnameAttribute, ok := attributes["hostname"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`hostname is missing from object`)
-
-		return NewApplicationConfigValueUnknown(), diags
-	}
-
-	hostnameVal, ok := hostnameAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`hostname expected to be basetypes.StringValue, was: %T`, hostnameAttribute))
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	instancesAttribute, ok := attributes["instances"]
@@ -287,7 +231,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`instances is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	instancesVal, ok := instancesAttribute.(basetypes.Int64Value)
@@ -298,24 +242,6 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			fmt.Sprintf(`instances expected to be basetypes.Int64Value, was: %T`, instancesAttribute))
 	}
 
-	ipAddressAttribute, ok := attributes["ip_address"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`ip_address is missing from object`)
-
-		return NewApplicationConfigValueUnknown(), diags
-	}
-
-	ipAddressVal, ok := ipAddressAttribute.(basetypes.StringValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`ip_address expected to be basetypes.StringValue, was: %T`, ipAddressAttribute))
-	}
-
 	passwordAttribute, ok := attributes["password"]
 
 	if !ok {
@@ -323,7 +249,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`password is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	passwordVal, ok := passwordAttribute.(basetypes.StringValue)
@@ -341,7 +267,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`recovery is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	recoveryVal, ok := recoveryAttribute.(basetypes.ObjectValue)
@@ -359,7 +285,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`scheduled_backups is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	scheduledBackupsVal, ok := scheduledBackupsAttribute.(basetypes.ObjectValue)
@@ -370,6 +296,42 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			fmt.Sprintf(`scheduled_backups expected to be basetypes.ObjectValue, was: %T`, scheduledBackupsAttribute))
 	}
 
+	privateNetworkConfigAttribute, ok := attributes["private_network_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`private_network_config is missing from object`)
+
+		return NewApplicationConfigValueV2Unknown(), diags
+	}
+
+	privateNetworkConfigVal, ok := privateNetworkConfigAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`private_network_config expected to be basetypes.ObjectValue, was: %T`, privateNetworkConfigAttribute))
+	}
+
+	publicNetworkConfigAttribute, ok := attributes["public_network_config"]
+
+	if !ok {
+		diags.AddError(
+			"Attribute Missing",
+			`public_network_config is missing from object`)
+
+		return NewApplicationConfigValueV2Unknown(), diags
+	}
+
+	publicNetworkConfigVal, ok := publicNetworkConfigAttribute.(basetypes.ObjectValue)
+
+	if !ok {
+		diags.AddError(
+			"Attribute Wrong Type",
+			fmt.Sprintf(`public_network_config expected to be basetypes.ObjectValue, was: %T`, publicNetworkConfigAttribute))
+	}
+
 	typeAttribute, ok := attributes["type"]
 
 	if !ok {
@@ -377,7 +339,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`type is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	typeVal, ok := typeAttribute.(basetypes.StringValue)
@@ -395,7 +357,7 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`version is missing from object`)
 
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
 	versionVal, ok := versionAttribute.(basetypes.StringValue)
@@ -407,24 +369,24 @@ func NewApplicationConfigValue(attributeTypes map[string]attr.Type, attributes m
 	}
 
 	if diags.HasError() {
-		return NewApplicationConfigValueUnknown(), diags
+		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
-	return ApplicationConfigValue{
-		Hostname:              hostnameVal,
+	return ApplicationConfigValueV2{
 		Instances:             instancesVal,
-		IpAddress:             ipAddressVal,
 		Password:              passwordVal,
 		Recovery:              recoveryVal,
 		ScheduledBackups:      scheduledBackupsVal,
+		PrivateNetworkConfig:  privateNetworkConfigVal,
+		PublicNetworkConfig:   publicNetworkConfigVal,
 		ApplicationConfigType: typeVal,
 		Version:               versionVal,
 		state:                 attr.ValueStateKnown,
 	}, diags
 }
 
-func NewApplicationConfigValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ApplicationConfigValue {
-	object, diags := NewApplicationConfigValue(attributeTypes, attributes)
+func NewApplicationConfigValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ApplicationConfigValueV2 {
+	object, diags := NewApplicationConfigValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -444,7 +406,7 @@ func NewApplicationConfigValueMust(attributeTypes map[string]attr.Type, attribut
 	return object
 }
 
-func (t ApplicationConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ApplicationConfigTypeV2) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
 		return NewApplicationConfigValueNull(), nil
 	}
@@ -484,39 +446,43 @@ func (t ApplicationConfigType) ValueFromTerraform(ctx context.Context, in tftype
 	return NewApplicationConfigValueMust(ApplicationConfigValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ApplicationConfigType) ValueType(ctx context.Context) attr.Value {
+func (t ApplicationConfigTypeV2) ValueType(ctx context.Context) attr.Value {
 	return ApplicationConfigValue{}
 }
 
-var _ basetypes.ObjectValuable = ApplicationConfigValue{}
+var _ basetypes.ObjectValuable = ApplicationConfigValueV2{}
 
-type ApplicationConfigValue struct {
-	Hostname              basetypes.StringValue `tfsdk:"hostname"`
+type ApplicationConfigValueV2 struct {
 	Instances             basetypes.Int64Value  `tfsdk:"instances"`
-	IpAddress             basetypes.StringValue `tfsdk:"ip_address"`
 	Password              basetypes.StringValue `tfsdk:"password"`
 	Recovery              basetypes.ObjectValue `tfsdk:"recovery"`
 	ScheduledBackups      basetypes.ObjectValue `tfsdk:"scheduled_backups"`
+	PrivateNetworkConfig  basetypes.ObjectValue `tfsdk:"private_network_config"`
+	PublicNetworkConfig   basetypes.ObjectValue `tfsdk:"public_network_config"`
 	ApplicationConfigType basetypes.StringValue `tfsdk:"type"`
 	Version               basetypes.StringValue `tfsdk:"version"`
 	state                 attr.ValueState
 }
 
-func (v ApplicationConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ApplicationConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 8)
 
 	var val tftypes.Value
 	var err error
 
-	attrTypes["hostname"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["instances"] = basetypes.Int64Type{}.TerraformType(ctx)
-	attrTypes["ip_address"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["password"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["recovery"] = basetypes.ObjectType{
-		AttrTypes: RecoveryValue{}.AttributeTypes(ctx),
+		AttrTypes: RecoveryValueV2{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
 	attrTypes["scheduled_backups"] = basetypes.ObjectType{
-		AttrTypes: ScheduledBackupsValue{}.AttributeTypes(ctx),
+		AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["private_network_config"] = basetypes.ObjectType{
+		AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+	}.TerraformType(ctx)
+	attrTypes["public_network_config"] = basetypes.ObjectType{
+		AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
 	attrTypes["type"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
@@ -527,14 +493,6 @@ func (v ApplicationConfigValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	case attr.ValueStateKnown:
 		vals := make(map[string]tftypes.Value, 8)
 
-		val, err = v.Hostname.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["hostname"] = val
-
 		val, err = v.Instances.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -542,14 +500,6 @@ func (v ApplicationConfigValue) ToTerraformValue(ctx context.Context) (tftypes.V
 		}
 
 		vals["instances"] = val
-
-		val, err = v.IpAddress.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["ip_address"] = val
 
 		val, err = v.Password.ToTerraformValue(ctx)
 
@@ -574,6 +524,22 @@ func (v ApplicationConfigValue) ToTerraformValue(ctx context.Context) (tftypes.V
 		}
 
 		vals["scheduled_backups"] = val
+
+		val, err = v.PrivateNetworkConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["private_network_config"] = val
+
+		val, err = v.PublicNetworkConfig.ToTerraformValue(ctx)
+
+		if err != nil {
+			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
+		}
+
+		vals["public_network_config"] = val
 
 		val, err = v.ApplicationConfigType.ToTerraformValue(ctx)
 
@@ -605,19 +571,19 @@ func (v ApplicationConfigValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	}
 }
 
-func (v ApplicationConfigValue) IsNull() bool {
+func (v ApplicationConfigValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ApplicationConfigValue) IsUnknown() bool {
+func (v ApplicationConfigValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ApplicationConfigValue) String() string {
-	return "ApplicationConfigValue"
+func (v ApplicationConfigValueV2) String() string {
+	return "ApplicationConfigValueV2"
 }
 
-func (v ApplicationConfigValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ApplicationConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var recovery basetypes.ObjectValue
@@ -662,37 +628,83 @@ func (v ApplicationConfigValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 		)
 	}
 
+	var privateNetworkConfig basetypes.ObjectValue
+
+	if v.PrivateNetworkConfig.IsNull() {
+		privateNetworkConfig = types.ObjectNull(
+			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.PrivateNetworkConfig.IsUnknown() {
+		privateNetworkConfig = types.ObjectUnknown(
+			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.PrivateNetworkConfig.IsNull() && !v.PrivateNetworkConfig.IsUnknown() {
+		privateNetworkConfig = types.ObjectValueMust(
+			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+			v.PrivateNetworkConfig.Attributes(),
+		)
+	}
+
+	var publicNetworkConfig basetypes.ObjectValue
+
+	if v.PublicNetworkConfig.IsNull() {
+		publicNetworkConfig = types.ObjectNull(
+			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+		)
+	}
+
+	if v.PublicNetworkConfig.IsUnknown() {
+		publicNetworkConfig = types.ObjectUnknown(
+			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+		)
+	}
+
+	if !v.PublicNetworkConfig.IsNull() && !v.PublicNetworkConfig.IsUnknown() {
+		publicNetworkConfig = types.ObjectValueMust(
+			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+			v.PublicNetworkConfig.Attributes(),
+		)
+	}
+
 	objVal, diags := types.ObjectValue(
 		map[string]attr.Type{
-			"hostname":   basetypes.StringType{},
-			"instances":  basetypes.Int64Type{},
-			"ip_address": basetypes.StringType{},
-			"password":   basetypes.StringType{},
+			"instances": basetypes.Int64Type{},
+			"password":  basetypes.StringType{},
 			"recovery": basetypes.ObjectType{
-				AttrTypes: RecoveryValue{}.AttributeTypes(ctx),
+				AttrTypes: RecoveryValueV2{}.AttributeTypes(ctx),
 			},
 			"scheduled_backups": basetypes.ObjectType{
-				AttrTypes: ScheduledBackupsValue{}.AttributeTypes(ctx),
+				AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
+			},
+			"private_network_config": basetypes.ObjectType{
+				AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+			},
+			"public_network_config": basetypes.ObjectType{
+				AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
 			},
 			"type":    basetypes.StringType{},
 			"version": basetypes.StringType{},
 		},
 		map[string]attr.Value{
-			"hostname":          v.Hostname,
-			"instances":         v.Instances,
-			"ip_address":        v.IpAddress,
-			"password":          v.Password,
-			"recovery":          recovery,
-			"scheduled_backups": scheduledBackups,
-			"type":              v.ApplicationConfigType,
-			"version":           v.Version,
+			"instances":              v.Instances,
+			"password":               v.Password,
+			"recovery":               recovery,
+			"scheduled_backups":      scheduledBackups,
+			"private_network_config": privateNetworkConfig,
+			"public_network_config":  publicNetworkConfig,
+			"type":                   v.ApplicationConfigType,
+			"version":                v.Version,
 		})
 
 	return objVal, diags
 }
 
-func (v ApplicationConfigValue) Equal(o attr.Value) bool {
-	other, ok := o.(ApplicationConfigValue)
+func (v ApplicationConfigValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(ApplicationConfigValueV2)
 
 	if !ok {
 		return false
@@ -706,15 +718,7 @@ func (v ApplicationConfigValue) Equal(o attr.Value) bool {
 		return true
 	}
 
-	if !v.Hostname.Equal(other.Hostname) {
-		return false
-	}
-
 	if !v.Instances.Equal(other.Instances) {
-		return false
-	}
-
-	if !v.IpAddress.Equal(other.IpAddress) {
 		return false
 	}
 
@@ -730,6 +734,14 @@ func (v ApplicationConfigValue) Equal(o attr.Value) bool {
 		return false
 	}
 
+	if !v.PrivateNetworkConfig.Equal(other.PrivateNetworkConfig) {
+		return false
+	}
+
+	if !v.PublicNetworkConfig.Equal(other.PublicNetworkConfig) {
+		return false
+	}
+
 	if !v.ApplicationConfigType.Equal(other.ApplicationConfigType) {
 		return false
 	}
@@ -741,7 +753,7 @@ func (v ApplicationConfigValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ApplicationConfigValue) Type(ctx context.Context) attr.Type {
+func (v ApplicationConfigValueV2) Type(ctx context.Context) attr.Type {
 	return ApplicationConfigType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
@@ -749,17 +761,21 @@ func (v ApplicationConfigValue) Type(ctx context.Context) attr.Type {
 	}
 }
 
-func (v ApplicationConfigValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ApplicationConfigValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
-		"hostname":   basetypes.StringType{},
-		"instances":  basetypes.Int64Type{},
-		"ip_address": basetypes.StringType{},
-		"password":   basetypes.StringType{},
+		"instances": basetypes.Int64Type{},
+		"password":  basetypes.StringType{},
 		"recovery": basetypes.ObjectType{
-			AttrTypes: RecoveryValue{}.AttributeTypes(ctx),
+			AttrTypes: RecoveryValueV2{}.AttributeTypes(ctx),
 		},
 		"scheduled_backups": basetypes.ObjectType{
-			AttrTypes: ScheduledBackupsValue{}.AttributeTypes(ctx),
+			AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
+		},
+		"private_network_config": basetypes.ObjectType{
+			AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+		},
+		"public_network_config": basetypes.ObjectType{
+			AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
 		},
 		"type":    basetypes.StringType{},
 		"version": basetypes.StringType{},
@@ -768,11 +784,11 @@ func (v ApplicationConfigValue) AttributeTypes(ctx context.Context) map[string]a
 
 var _ basetypes.ObjectTypable = RecoveryType{}
 
-type RecoveryType struct {
+type RecoveryTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t RecoveryType) Equal(o attr.Type) bool {
+func (t RecoveryTypeV2) Equal(o attr.Type) bool {
 	other, ok := o.(RecoveryType)
 
 	if !ok {
@@ -782,11 +798,11 @@ func (t RecoveryType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t RecoveryType) String() string {
-	return "RecoveryType"
+func (t RecoveryTypeV2) String() string {
+	return "RecoveryTypeV2"
 }
 
-func (t RecoveryType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t RecoveryTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -903,7 +919,7 @@ func (t RecoveryType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 		return nil, diags
 	}
 
-	return RecoveryValue{
+	return RecoveryValueV2{
 		Exclusive:  exclusiveVal,
 		Source:     sourceVal,
 		TargetLsn:  targetLsnVal,
@@ -914,19 +930,19 @@ func (t RecoveryType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 	}, diags
 }
 
-func NewRecoveryValueNull() RecoveryValue {
-	return RecoveryValue{
+func NewRecoveryValueV2Null() RecoveryValueV2 {
+	return RecoveryValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewRecoveryValueUnknown() RecoveryValue {
-	return RecoveryValue{
+func NewRecoveryValueV2Unknown() RecoveryValueV2 {
+	return RecoveryValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (RecoveryValue, diag.Diagnostics) {
+func NewRecoveryValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (RecoveryValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -974,7 +990,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 	}
 
 	if diags.HasError() {
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	exclusiveAttribute, ok := attributes["exclusive"]
@@ -984,7 +1000,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`exclusive is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	exclusiveVal, ok := exclusiveAttribute.(basetypes.BoolValue)
@@ -1002,7 +1018,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`source is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	sourceVal, ok := sourceAttribute.(basetypes.StringValue)
@@ -1020,7 +1036,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`target_lsn is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	targetLsnVal, ok := targetLsnAttribute.(basetypes.StringValue)
@@ -1038,7 +1054,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`target_name is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	targetNameVal, ok := targetNameAttribute.(basetypes.StringValue)
@@ -1056,7 +1072,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`target_time is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	targetTimeVal, ok := targetTimeAttribute.(basetypes.StringValue)
@@ -1074,7 +1090,7 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`target_xid is missing from object`)
 
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
 	targetXidVal, ok := targetXidAttribute.(basetypes.StringValue)
@@ -1086,10 +1102,10 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 	}
 
 	if diags.HasError() {
-		return NewRecoveryValueUnknown(), diags
+		return NewRecoveryValueV2Unknown(), diags
 	}
 
-	return RecoveryValue{
+	return RecoveryValueV2{
 		Exclusive:  exclusiveVal,
 		Source:     sourceVal,
 		TargetLsn:  targetLsnVal,
@@ -1100,8 +1116,8 @@ func NewRecoveryValue(attributeTypes map[string]attr.Type, attributes map[string
 	}, diags
 }
 
-func NewRecoveryValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) RecoveryValue {
-	object, diags := NewRecoveryValue(attributeTypes, attributes)
+func NewRecoveryValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) RecoveryValueV2 {
+	object, diags := NewRecoveryValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -1121,7 +1137,7 @@ func NewRecoveryValueMust(attributeTypes map[string]attr.Type, attributes map[st
 	return object
 }
 
-func (t RecoveryType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t RecoveryTypeV2) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
 		return NewRecoveryValueNull(), nil
 	}
@@ -1161,13 +1177,13 @@ func (t RecoveryType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 	return NewRecoveryValueMust(RecoveryValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t RecoveryType) ValueType(ctx context.Context) attr.Value {
-	return RecoveryValue{}
+func (t RecoveryTypeV2) ValueType(ctx context.Context) attr.Value {
+	return RecoveryValueV2{}
 }
 
 var _ basetypes.ObjectValuable = RecoveryValue{}
 
-type RecoveryValue struct {
+type RecoveryValueV2 struct {
 	Exclusive  basetypes.BoolValue   `tfsdk:"exclusive"`
 	Source     basetypes.StringValue `tfsdk:"source"`
 	TargetLsn  basetypes.StringValue `tfsdk:"target_lsn"`
@@ -1177,7 +1193,7 @@ type RecoveryValue struct {
 	state      attr.ValueState
 }
 
-func (v RecoveryValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v RecoveryValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 6)
 
 	var val tftypes.Value
@@ -1258,19 +1274,19 @@ func (v RecoveryValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 	}
 }
 
-func (v RecoveryValue) IsNull() bool {
+func (v RecoveryValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v RecoveryValue) IsUnknown() bool {
+func (v RecoveryValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v RecoveryValue) String() string {
-	return "RecoveryValue"
+func (v RecoveryValueV2) String() string {
+	return "RecoveryValueV2"
 }
 
-func (v RecoveryValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v RecoveryValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
@@ -1294,8 +1310,8 @@ func (v RecoveryValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 	return objVal, diags
 }
 
-func (v RecoveryValue) Equal(o attr.Value) bool {
-	other, ok := o.(RecoveryValue)
+func (v RecoveryValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(RecoveryValueV2)
 
 	if !ok {
 		return false
@@ -1336,7 +1352,7 @@ func (v RecoveryValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v RecoveryValue) Type(ctx context.Context) attr.Type {
+func (v RecoveryValueV2) Type(ctx context.Context) attr.Type {
 	return RecoveryType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
@@ -1344,7 +1360,7 @@ func (v RecoveryValue) Type(ctx context.Context) attr.Type {
 	}
 }
 
-func (v RecoveryValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v RecoveryValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"exclusive":   basetypes.BoolType{},
 		"source":      basetypes.StringType{},
@@ -1355,14 +1371,14 @@ func (v RecoveryValue) AttributeTypes(ctx context.Context) map[string]attr.Type 
 	}
 }
 
-var _ basetypes.ObjectTypable = ScheduledBackupsType{}
+var _ basetypes.ObjectTypable = ScheduledBackupsTypeV2{}
 
-type ScheduledBackupsType struct {
+type ScheduledBackupsTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t ScheduledBackupsType) Equal(o attr.Type) bool {
-	other, ok := o.(ScheduledBackupsType)
+func (t ScheduledBackupsTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(ScheduledBackupsTypeV2)
 
 	if !ok {
 		return false
@@ -1371,11 +1387,11 @@ func (t ScheduledBackupsType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ScheduledBackupsType) String() string {
-	return "ScheduledBackupsType"
+func (t ScheduledBackupsTypeV2) String() string {
+	return "ScheduledBackupsTypeV2"
 }
 
-func (t ScheduledBackupsType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ScheduledBackupsTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -1427,19 +1443,19 @@ func (t ScheduledBackupsType) ValueFromObject(ctx context.Context, in basetypes.
 	}, diags
 }
 
-func NewScheduledBackupsValueNull() ScheduledBackupsValue {
-	return ScheduledBackupsValue{
+func NewScheduledBackupsValueV2Null() ScheduledBackupsValueV2 {
+	return ScheduledBackupsValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewScheduledBackupsValueUnknown() ScheduledBackupsValue {
-	return ScheduledBackupsValue{
+func NewScheduledBackupsValueV2Unknown() ScheduledBackupsValueV2 {
+	return ScheduledBackupsValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewScheduledBackupsValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ScheduledBackupsValue, diag.Diagnostics) {
+func NewScheduledBackupsValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ScheduledBackupsValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -1487,7 +1503,7 @@ func NewScheduledBackupsValue(attributeTypes map[string]attr.Type, attributes ma
 	}
 
 	if diags.HasError() {
-		return NewScheduledBackupsValueUnknown(), diags
+		return NewScheduledBackupsValueV2Unknown(), diags
 	}
 
 	retentionAttribute, ok := attributes["retention"]
@@ -1497,7 +1513,7 @@ func NewScheduledBackupsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`retention is missing from object`)
 
-		return NewScheduledBackupsValueUnknown(), diags
+		return NewScheduledBackupsValueV2Unknown(), diags
 	}
 
 	retentionVal, ok := retentionAttribute.(basetypes.Int64Value)
@@ -1515,7 +1531,7 @@ func NewScheduledBackupsValue(attributeTypes map[string]attr.Type, attributes ma
 			"Attribute Missing",
 			`schedule is missing from object`)
 
-		return NewScheduledBackupsValueUnknown(), diags
+		return NewScheduledBackupsValueV2Unknown(), diags
 	}
 
 	scheduleVal, ok := scheduleAttribute.(basetypes.ObjectValue)
@@ -1527,18 +1543,18 @@ func NewScheduledBackupsValue(attributeTypes map[string]attr.Type, attributes ma
 	}
 
 	if diags.HasError() {
-		return NewScheduledBackupsValueUnknown(), diags
+		return NewScheduledBackupsValueV2Unknown(), diags
 	}
 
-	return ScheduledBackupsValue{
+	return ScheduledBackupsValueV2{
 		Retention: retentionVal,
 		Schedule:  scheduleVal,
 		state:     attr.ValueStateKnown,
 	}, diags
 }
 
-func NewScheduledBackupsValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ScheduledBackupsValue {
-	object, diags := NewScheduledBackupsValue(attributeTypes, attributes)
+func NewScheduledBackupsValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ScheduledBackupsValueV2 {
+	object, diags := NewScheduledBackupsValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -1558,7 +1574,7 @@ func NewScheduledBackupsValueMust(attributeTypes map[string]attr.Type, attribute
 	return object
 }
 
-func (t ScheduledBackupsType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ScheduledBackupsTypeV2) ValueFromTerraformV2(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
 		return NewScheduledBackupsValueNull(), nil
 	}
@@ -1598,19 +1614,19 @@ func (t ScheduledBackupsType) ValueFromTerraform(ctx context.Context, in tftypes
 	return NewScheduledBackupsValueMust(ScheduledBackupsValue{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ScheduledBackupsType) ValueType(ctx context.Context) attr.Value {
+func (t ScheduledBackupsTypeV2) ValueType(ctx context.Context) attr.Value {
 	return ScheduledBackupsValue{}
 }
 
-var _ basetypes.ObjectValuable = ScheduledBackupsValue{}
+var _ basetypes.ObjectValuable = ScheduledBackupsValueV2{}
 
-type ScheduledBackupsValue struct {
+type ScheduledBackupsValueV2 struct {
 	Retention basetypes.Int64Value  `tfsdk:"retention"`
 	Schedule  basetypes.ObjectValue `tfsdk:"schedule"`
 	state     attr.ValueState
 }
 
-func (v ScheduledBackupsValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ScheduledBackupsValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
@@ -1657,19 +1673,19 @@ func (v ScheduledBackupsValue) ToTerraformValue(ctx context.Context) (tftypes.Va
 	}
 }
 
-func (v ScheduledBackupsValue) IsNull() bool {
+func (v ScheduledBackupsValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ScheduledBackupsValue) IsUnknown() bool {
+func (v ScheduledBackupsValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ScheduledBackupsValue) String() string {
-	return "ScheduledBackupsValue"
+func (v ScheduledBackupsValueV2) String() string {
+	return "ScheduledBackupsValueV2"
 }
 
-func (v ScheduledBackupsValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ScheduledBackupsValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var schedule basetypes.ObjectValue
@@ -1708,8 +1724,8 @@ func (v ScheduledBackupsValue) ToObjectValue(ctx context.Context) (basetypes.Obj
 	return objVal, diags
 }
 
-func (v ScheduledBackupsValue) Equal(o attr.Value) bool {
-	other, ok := o.(ScheduledBackupsValue)
+func (v ScheduledBackupsValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(ScheduledBackupsValueV2)
 
 	if !ok {
 		return false
@@ -1734,15 +1750,15 @@ func (v ScheduledBackupsValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ScheduledBackupsValue) Type(ctx context.Context) attr.Type {
-	return ScheduledBackupsType{
+func (v ScheduledBackupsValueV2) Type(ctx context.Context) attr.Type {
+	return ScheduledBackupsTypeV2{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ScheduledBackupsValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ScheduledBackupsValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"retention": basetypes.Int64Type{},
 		"schedule": basetypes.ObjectType{
@@ -1751,9 +1767,9 @@ func (v ScheduledBackupsValue) AttributeTypes(ctx context.Context) map[string]at
 	}
 }
 
-func (v ScheduledBackupsValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsV1, diag.Diagnostics) {
+func (v ScheduledBackupsValueV2) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
-	scheduleObj, d := NewScheduleValue(v.Schedule.AttributeTypes(ctx), v.Schedule.Attributes())
+	scheduleObj, d := NewScheduleValueV2(v.Schedule.AttributeTypes(ctx), v.Schedule.Attributes())
 	diags.Append(d...)
 	schedule, d := scheduleObj.ToDBaaSSdkObject(ctx)
 	diags.Append(d...)
@@ -1764,20 +1780,20 @@ func (v ScheduledBackupsValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaa
 		retention = sys11dbaassdk.Int64ToIntPtr(v.Retention.ValueInt64())
 	}
 
-	return &sys11dbaassdk.PSQLScheduledBackupsV1{
+	return &sys11dbaassdk.PSQLScheduledBackupsV2{
 		Retention: retention,
 		Schedule:  schedule,
 	}, diags
 }
 
-var _ basetypes.ObjectTypable = ScheduleType{}
+var _ basetypes.ObjectTypable = ScheduleTypeV2{}
 
-type ScheduleType struct {
+type ScheduleTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t ScheduleType) Equal(o attr.Type) bool {
-	other, ok := o.(ScheduleType)
+func (t ScheduleTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(ScheduleTypeV2)
 
 	if !ok {
 		return false
@@ -1786,11 +1802,11 @@ func (t ScheduleType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ScheduleType) String() string {
-	return "ScheduleType"
+func (t ScheduleTypeV2) String() string {
+	return "ScheduleTypeV2"
 }
 
-func (t ScheduleType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ScheduleTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -1842,19 +1858,19 @@ func (t ScheduleType) ValueFromObject(ctx context.Context, in basetypes.ObjectVa
 	}, diags
 }
 
-func NewScheduleValueNull() ScheduleValue {
-	return ScheduleValue{
+func NewScheduleValueV2Null() ScheduleValueV2 {
+	return ScheduleValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewScheduleValueUnknown() ScheduleValue {
-	return ScheduleValue{
+func NewScheduleValueV2Unknown() ScheduleValueV2 {
+	return ScheduleValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewScheduleValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ScheduleValue, diag.Diagnostics) {
+func NewScheduleValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ScheduleValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -1902,7 +1918,7 @@ func NewScheduleValue(attributeTypes map[string]attr.Type, attributes map[string
 	}
 
 	if diags.HasError() {
-		return NewScheduleValueUnknown(), diags
+		return NewScheduleValueV2Unknown(), diags
 	}
 
 	hourAttribute, ok := attributes["hour"]
@@ -1912,7 +1928,7 @@ func NewScheduleValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`hour is missing from object`)
 
-		return NewScheduleValueUnknown(), diags
+		return NewScheduleValueV2Unknown(), diags
 	}
 
 	hourVal, ok := hourAttribute.(basetypes.Int64Value)
@@ -1930,7 +1946,7 @@ func NewScheduleValue(attributeTypes map[string]attr.Type, attributes map[string
 			"Attribute Missing",
 			`minute is missing from object`)
 
-		return NewScheduleValueUnknown(), diags
+		return NewScheduleValueV2Unknown(), diags
 	}
 
 	minuteVal, ok := minuteAttribute.(basetypes.Int64Value)
@@ -1942,18 +1958,18 @@ func NewScheduleValue(attributeTypes map[string]attr.Type, attributes map[string
 	}
 
 	if diags.HasError() {
-		return NewScheduleValueUnknown(), diags
+		return NewScheduleValueV2Unknown(), diags
 	}
 
-	return ScheduleValue{
+	return ScheduleValueV2{
 		Hour:   hourVal,
 		Minute: minuteVal,
 		state:  attr.ValueStateKnown,
 	}, diags
 }
 
-func NewScheduleValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ScheduleValue {
-	object, diags := NewScheduleValue(attributeTypes, attributes)
+func NewScheduleValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ScheduleValueV2 {
+	object, diags := NewScheduleValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -1967,15 +1983,15 @@ func NewScheduleValueMust(attributeTypes map[string]attr.Type, attributes map[st
 				diagnostic.Detail()))
 		}
 
-		panic("NewScheduleValueMust received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewScheduleValueV2Must received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t ScheduleType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ScheduleTypeV2) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewScheduleValueNull(), nil
+		return NewScheduleValueV2Null(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -1983,11 +1999,11 @@ func (t ScheduleType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 	}
 
 	if !in.IsKnown() {
-		return NewScheduleValueUnknown(), nil
+		return NewScheduleValueV2Unknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewScheduleValueNull(), nil
+		return NewScheduleValueV2Null(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -2010,22 +2026,22 @@ func (t ScheduleType) ValueFromTerraform(ctx context.Context, in tftypes.Value) 
 		attributes[k] = a
 	}
 
-	return NewScheduleValueMust(ScheduleValue{}.AttributeTypes(ctx), attributes), nil
+	return NewScheduleValueV2Must(ScheduleValueV2{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ScheduleType) ValueType(ctx context.Context) attr.Value {
-	return ScheduleValue{}
+func (t ScheduleTypeV2) ValueType(ctx context.Context) attr.Value {
+	return ScheduleValueV2{}
 }
 
 var _ basetypes.ObjectValuable = ScheduleValue{}
 
-type ScheduleValue struct {
+type ScheduleValueV2 struct {
 	Hour   basetypes.Int64Value `tfsdk:"hour"`
 	Minute basetypes.Int64Value `tfsdk:"minute"`
 	state  attr.ValueState
 }
 
-func (v ScheduleValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ScheduleValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
@@ -2070,19 +2086,19 @@ func (v ScheduleValue) ToTerraformValue(ctx context.Context) (tftypes.Value, err
 	}
 }
 
-func (v ScheduleValue) IsNull() bool {
+func (v ScheduleValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ScheduleValue) IsUnknown() bool {
+func (v ScheduleValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ScheduleValue) String() string {
-	return "ScheduleValue"
+func (v ScheduleValueV2) String() string {
+	return "ScheduleValueV2"
 }
 
-func (v ScheduleValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ScheduleValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
@@ -2098,8 +2114,8 @@ func (v ScheduleValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue
 	return objVal, diags
 }
 
-func (v ScheduleValue) Equal(o attr.Value) bool {
-	other, ok := o.(ScheduleValue)
+func (v ScheduleValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(ScheduleValueV2)
 
 	if !ok {
 		return false
@@ -2124,7 +2140,7 @@ func (v ScheduleValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ScheduleValue) Type(ctx context.Context) attr.Type {
+func (v ScheduleValueV2) Type(ctx context.Context) attr.Type {
 	return ScheduleType{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
@@ -2132,14 +2148,14 @@ func (v ScheduleValue) Type(ctx context.Context) attr.Type {
 	}
 }
 
-func (v ScheduleValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ScheduleValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"hour":   basetypes.Int64Type{},
 		"minute": basetypes.Int64Type{},
 	}
 }
 
-func (v ScheduleValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsScheduleV1, diag.Diagnostics) {
+func (v ScheduleValueV2) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsScheduleV2, diag.Diagnostics) {
 
 	var hour *int
 	hour = nil
@@ -2153,7 +2169,7 @@ func (v ScheduleValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQ
 		minute = sys11dbaassdk.Int64ToIntPtr(v.Minute.ValueInt64())
 	}
 
-	return &sys11dbaassdk.PSQLScheduledBackupsScheduleV1{
+	return &sys11dbaassdk.PSQLScheduledBackupsScheduleV2{
 		Hour:   hour,
 		Minute: minute,
 	}, diag.Diagnostics{}

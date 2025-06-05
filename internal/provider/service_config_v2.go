@@ -13,13 +13,13 @@ import (
 	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
 )
 
-var _ basetypes.ObjectTypable = ServiceConfigType{}
+var _ basetypes.ObjectTypable = ServiceConfigTypeV2{}
 
-type ServiceConfigType struct {
+type ServiceConfigTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t ServiceConfigType) Equal(o attr.Type) bool {
+func (t ServiceConfigTypeV2) Equal(o attr.Type) bool {
 	other, ok := o.(ServiceConfigType)
 
 	if !ok {
@@ -29,11 +29,11 @@ func (t ServiceConfigType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t ServiceConfigType) String() string {
-	return "ServiceConfigType"
+func (t ServiceConfigTypeV2) String() string {
+	return "ServiceConfigTypeV2"
 }
 
-func (t ServiceConfigType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t ServiceConfigTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -110,24 +110,6 @@ func (t ServiceConfigType) ValueFromObject(ctx context.Context, in basetypes.Obj
 			fmt.Sprintf(`region expected to be basetypes.StringValue, was: %T`, regionAttribute))
 	}
 
-	remoteIpsAttribute, ok := attributes["remote_ips"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`remote_ips is missing from object`)
-
-		return nil, diags
-	}
-
-	remoteIpsVal, ok := remoteIpsAttribute.(basetypes.ListValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`remote_ips expected to be basetypes.ListValue, was: %T`, remoteIpsAttribute))
-	}
-
 	typeAttribute, ok := attributes["type"]
 
 	if !ok {
@@ -150,30 +132,29 @@ func (t ServiceConfigType) ValueFromObject(ctx context.Context, in basetypes.Obj
 		return nil, diags
 	}
 
-	return ServiceConfigValue{
+	return ServiceConfigValueV2{
 		Disksize:          disksizeVal,
 		Flavor:            flavorVal,
 		MaintenanceWindow: maintenanceWindowVal,
 		Region:            regionVal,
-		RemoteIps:         remoteIpsVal,
 		ServiceConfigType: typeVal,
 		state:             attr.ValueStateKnown,
 	}, diags
 }
 
-func NewServiceConfigValueNull() ServiceConfigValue {
-	return ServiceConfigValue{
+func NewServiceConfigValueV2Null() ServiceConfigValueV2 {
+	return ServiceConfigValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewServiceConfigValueUnknown() ServiceConfigValue {
-	return ServiceConfigValue{
+func NewServiceConfigValueV2Unknown() ServiceConfigValueV2 {
+	return ServiceConfigValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ServiceConfigValue, diag.Diagnostics) {
+func NewServiceConfigValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (ServiceConfigValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -221,7 +202,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 	}
 
 	if diags.HasError() {
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	disksizeAttribute, ok := attributes["disksize"]
@@ -231,7 +212,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			"Attribute Missing",
 			`disksize is missing from object`)
 
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	disksizeVal, ok := disksizeAttribute.(basetypes.Int64Value)
@@ -249,7 +230,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			"Attribute Missing",
 			`flavor is missing from object`)
 
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	flavorVal, ok := flavorAttribute.(basetypes.StringValue)
@@ -267,7 +248,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			"Attribute Missing",
 			`maintenance_window is missing from object`)
 
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	maintenanceWindowVal, ok := maintenanceWindowAttribute.(basetypes.ObjectValue)
@@ -285,7 +266,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			"Attribute Missing",
 			`region is missing from object`)
 
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	regionVal, ok := regionAttribute.(basetypes.StringValue)
@@ -296,24 +277,6 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			fmt.Sprintf(`region expected to be basetypes.StringValue, was: %T`, regionAttribute))
 	}
 
-	remoteIpsAttribute, ok := attributes["remote_ips"]
-
-	if !ok {
-		diags.AddError(
-			"Attribute Missing",
-			`remote_ips is missing from object`)
-
-		return NewServiceConfigValueUnknown(), diags
-	}
-
-	remoteIpsVal, ok := remoteIpsAttribute.(basetypes.ListValue)
-
-	if !ok {
-		diags.AddError(
-			"Attribute Wrong Type",
-			fmt.Sprintf(`remote_ips expected to be basetypes.ListValue, was: %T`, remoteIpsAttribute))
-	}
-
 	typeAttribute, ok := attributes["type"]
 
 	if !ok {
@@ -321,7 +284,7 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 			"Attribute Missing",
 			`type is missing from object`)
 
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
 	typeVal, ok := typeAttribute.(basetypes.StringValue)
@@ -333,22 +296,21 @@ func NewServiceConfigValue(attributeTypes map[string]attr.Type, attributes map[s
 	}
 
 	if diags.HasError() {
-		return NewServiceConfigValueUnknown(), diags
+		return NewServiceConfigValueV2Unknown(), diags
 	}
 
-	return ServiceConfigValue{
+	return ServiceConfigValueV2{
 		Disksize:          disksizeVal,
 		Flavor:            flavorVal,
 		MaintenanceWindow: maintenanceWindowVal,
 		Region:            regionVal,
-		RemoteIps:         remoteIpsVal,
 		ServiceConfigType: typeVal,
 		state:             attr.ValueStateKnown,
 	}, diags
 }
 
-func NewServiceConfigValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ServiceConfigValue {
-	object, diags := NewServiceConfigValue(attributeTypes, attributes)
+func NewServiceConfigValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) ServiceConfigValueV2 {
+	object, diags := NewServiceConfigValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -368,9 +330,9 @@ func NewServiceConfigValueMust(attributeTypes map[string]attr.Type, attributes m
 	return object
 }
 
-func (t ServiceConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t ServiceConfigTypeV2) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewServiceConfigValueNull(), nil
+		return NewServiceConfigValueV2Null(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -378,11 +340,11 @@ func (t ServiceConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Va
 	}
 
 	if !in.IsKnown() {
-		return NewServiceConfigValueUnknown(), nil
+		return NewServiceConfigValueV2Unknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewServiceConfigValueNull(), nil
+		return NewServiceConfigValueV2Null(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -405,26 +367,25 @@ func (t ServiceConfigType) ValueFromTerraform(ctx context.Context, in tftypes.Va
 		attributes[k] = a
 	}
 
-	return NewServiceConfigValueMust(ServiceConfigValue{}.AttributeTypes(ctx), attributes), nil
+	return NewServiceConfigValueV2Must(ServiceConfigValueV2{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t ServiceConfigType) ValueType(ctx context.Context) attr.Value {
-	return ServiceConfigValue{}
+func (t ServiceConfigTypeV2) ValueType(ctx context.Context) attr.Value {
+	return ServiceConfigValueV2{}
 }
 
-var _ basetypes.ObjectValuable = ServiceConfigValue{}
+var _ basetypes.ObjectValuable = ServiceConfigValueV2{}
 
-type ServiceConfigValue struct {
+type ServiceConfigValueV2 struct {
 	Disksize          basetypes.Int64Value  `tfsdk:"disksize"`
 	Flavor            basetypes.StringValue `tfsdk:"flavor"`
 	MaintenanceWindow basetypes.ObjectValue `tfsdk:"maintenance_window"`
 	Region            basetypes.StringValue `tfsdk:"region"`
-	RemoteIps         basetypes.ListValue   `tfsdk:"remote_ips"`
 	ServiceConfigType basetypes.StringValue `tfsdk:"type"`
 	state             attr.ValueState
 }
 
-func (v ServiceConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v ServiceConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 6)
 
 	var val tftypes.Value
@@ -436,9 +397,6 @@ func (v ServiceConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value
 		AttrTypes: MaintenanceWindowValue{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
 	attrTypes["region"] = basetypes.StringType{}.TerraformType(ctx)
-	attrTypes["remote_ips"] = basetypes.ListType{
-		ElemType: types.StringType,
-	}.TerraformType(ctx)
 	attrTypes["type"] = basetypes.StringType{}.TerraformType(ctx)
 
 	objectType := tftypes.Object{AttributeTypes: attrTypes}
@@ -479,14 +437,6 @@ func (v ServiceConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value
 
 		vals["region"] = val
 
-		val, err = v.RemoteIps.ToTerraformValue(ctx)
-
-		if err != nil {
-			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
-		}
-
-		vals["remote_ips"] = val
-
 		val, err = v.ServiceConfigType.ToTerraformValue(ctx)
 
 		if err != nil {
@@ -509,19 +459,19 @@ func (v ServiceConfigValue) ToTerraformValue(ctx context.Context) (tftypes.Value
 	}
 }
 
-func (v ServiceConfigValue) IsNull() bool {
+func (v ServiceConfigValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v ServiceConfigValue) IsUnknown() bool {
+func (v ServiceConfigValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v ServiceConfigValue) String() string {
-	return "ServiceConfigValue"
+func (v ServiceConfigValueV2) String() string {
+	return "ServiceConfigValueV2"
 }
 
-func (v ServiceConfigValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v ServiceConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var maintenanceWindow basetypes.ObjectValue
@@ -545,10 +495,6 @@ func (v ServiceConfigValue) ToObjectValue(ctx context.Context) (basetypes.Object
 		)
 	}
 
-	remoteIpsVal, d := types.ListValue(types.StringType, v.RemoteIps.Elements())
-
-	diags.Append(d...)
-
 	if diags.HasError() {
 		return types.ObjectUnknown(map[string]attr.Type{
 			"disksize": basetypes.Int64Type{},
@@ -557,10 +503,7 @@ func (v ServiceConfigValue) ToObjectValue(ctx context.Context) (basetypes.Object
 				AttrTypes: MaintenanceWindowValue{}.AttributeTypes(ctx),
 			},
 			"region": basetypes.StringType{},
-			"remote_ips": basetypes.ListType{
-				ElemType: types.StringType,
-			},
-			"type": basetypes.StringType{},
+			"type":   basetypes.StringType{},
 		}), diags
 	}
 
@@ -572,25 +515,21 @@ func (v ServiceConfigValue) ToObjectValue(ctx context.Context) (basetypes.Object
 				AttrTypes: MaintenanceWindowValue{}.AttributeTypes(ctx),
 			},
 			"region": basetypes.StringType{},
-			"remote_ips": basetypes.ListType{
-				ElemType: types.StringType,
-			},
-			"type": basetypes.StringType{},
+			"type":   basetypes.StringType{},
 		},
 		map[string]attr.Value{
 			"disksize":           v.Disksize,
 			"flavor":             v.Flavor,
 			"maintenance_window": maintenanceWindow,
 			"region":             v.Region,
-			"remote_ips":         remoteIpsVal,
 			"type":               v.ServiceConfigType,
 		})
 
 	return objVal, diags
 }
 
-func (v ServiceConfigValue) Equal(o attr.Value) bool {
-	other, ok := o.(ServiceConfigValue)
+func (v ServiceConfigValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(ServiceConfigValueV2)
 
 	if !ok {
 		return false
@@ -620,10 +559,6 @@ func (v ServiceConfigValue) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.RemoteIps.Equal(other.RemoteIps) {
-		return false
-	}
-
 	if !v.ServiceConfigType.Equal(other.ServiceConfigType) {
 		return false
 	}
@@ -631,15 +566,15 @@ func (v ServiceConfigValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v ServiceConfigValue) Type(ctx context.Context) attr.Type {
-	return ServiceConfigType{
+func (v ServiceConfigValueV2) Type(ctx context.Context) attr.Type {
+	return ServiceConfigTypeV2{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v ServiceConfigValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v ServiceConfigValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"disksize": basetypes.Int64Type{},
 		"flavor":   basetypes.StringType{},
@@ -647,21 +582,18 @@ func (v ServiceConfigValue) AttributeTypes(ctx context.Context) map[string]attr.
 			AttrTypes: MaintenanceWindowValue{}.AttributeTypes(ctx),
 		},
 		"region": basetypes.StringType{},
-		"remote_ips": basetypes.ListType{
-			ElemType: types.StringType,
-		},
-		"type": basetypes.StringType{},
+		"type":   basetypes.StringType{},
 	}
 }
 
-var _ basetypes.ObjectTypable = MaintenanceWindowType{}
+var _ basetypes.ObjectTypable = MaintenanceWindowTypeV2{}
 
-type MaintenanceWindowType struct {
+type MaintenanceWindowTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t MaintenanceWindowType) Equal(o attr.Type) bool {
-	other, ok := o.(MaintenanceWindowType)
+func (t MaintenanceWindowTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(MaintenanceWindowTypeV2)
 
 	if !ok {
 		return false
@@ -670,11 +602,11 @@ func (t MaintenanceWindowType) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t MaintenanceWindowType) String() string {
-	return "MaintenanceWindowType"
+func (t MaintenanceWindowTypeV2) String() string {
+	return "MaintenanceWindowTypeV2"
 }
 
-func (t MaintenanceWindowType) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t MaintenanceWindowTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -737,7 +669,7 @@ func (t MaintenanceWindowType) ValueFromObject(ctx context.Context, in basetypes
 		return nil, diags
 	}
 
-	return MaintenanceWindowValue{
+	return MaintenanceWindowValueV2{
 		DayOfWeek:   dayOfWeekVal,
 		StartHour:   startHourVal,
 		StartMinute: startMinuteVal,
@@ -745,19 +677,19 @@ func (t MaintenanceWindowType) ValueFromObject(ctx context.Context, in basetypes
 	}.ToObjectValue(ctx)
 }
 
-func NewMaintenanceWindowValueNull() MaintenanceWindowValue {
-	return MaintenanceWindowValue{
+func NewMaintenanceWindowValueV2Null() MaintenanceWindowValueV2 {
+	return MaintenanceWindowValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewMaintenanceWindowValueUnknown() MaintenanceWindowValue {
-	return MaintenanceWindowValue{
+func NewMaintenanceWindowValueV2Unknown() MaintenanceWindowValueV2 {
+	return MaintenanceWindowValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MaintenanceWindowValue, diag.Diagnostics) {
+func NewMaintenanceWindowValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (MaintenanceWindowValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -805,7 +737,7 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 	}
 
 	if diags.HasError() {
-		return NewMaintenanceWindowValueUnknown(), diags
+		return NewMaintenanceWindowValueV2Unknown(), diags
 	}
 
 	dayOfWeekAttribute, ok := attributes["day_of_week"]
@@ -815,7 +747,7 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`day_of_week is missing from object`)
 
-		return NewMaintenanceWindowValueUnknown(), diags
+		return NewMaintenanceWindowValueV2Unknown(), diags
 	}
 
 	dayOfWeekVal, ok := dayOfWeekAttribute.(basetypes.Int64Value)
@@ -833,7 +765,7 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`start_hour is missing from object`)
 
-		return NewMaintenanceWindowValueUnknown(), diags
+		return NewMaintenanceWindowValueV2Unknown(), diags
 	}
 
 	startHourVal, ok := startHourAttribute.(basetypes.Int64Value)
@@ -851,7 +783,7 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 			"Attribute Missing",
 			`start_minute is missing from object`)
 
-		return NewMaintenanceWindowValueUnknown(), diags
+		return NewMaintenanceWindowValueV2Unknown(), diags
 	}
 
 	startMinuteVal, ok := startMinuteAttribute.(basetypes.Int64Value)
@@ -863,10 +795,10 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 	}
 
 	if diags.HasError() {
-		return NewMaintenanceWindowValueUnknown(), diags
+		return NewMaintenanceWindowValueV2Unknown(), diags
 	}
 
-	return MaintenanceWindowValue{
+	return MaintenanceWindowValueV2{
 		DayOfWeek:   dayOfWeekVal,
 		StartHour:   startHourVal,
 		StartMinute: startMinuteVal,
@@ -874,8 +806,8 @@ func NewMaintenanceWindowValue(attributeTypes map[string]attr.Type, attributes m
 	}, diags
 }
 
-func NewMaintenanceWindowValueMust(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MaintenanceWindowValue {
-	object, diags := NewMaintenanceWindowValue(attributeTypes, attributes)
+func NewMaintenanceWindowValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) MaintenanceWindowValueV2 {
+	object, diags := NewMaintenanceWindowValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -895,9 +827,9 @@ func NewMaintenanceWindowValueMust(attributeTypes map[string]attr.Type, attribut
 	return object
 }
 
-func (t MaintenanceWindowType) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t MaintenanceWindowTypeV2) ValueFromTerraform(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewMaintenanceWindowValueNull(), nil
+		return NewMaintenanceWindowValueV2Null(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -905,11 +837,11 @@ func (t MaintenanceWindowType) ValueFromTerraform(ctx context.Context, in tftype
 	}
 
 	if !in.IsKnown() {
-		return NewMaintenanceWindowValueUnknown(), nil
+		return NewMaintenanceWindowValueV2Unknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewMaintenanceWindowValueNull(), nil
+		return NewMaintenanceWindowValueV2Null(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -932,23 +864,23 @@ func (t MaintenanceWindowType) ValueFromTerraform(ctx context.Context, in tftype
 		attributes[k] = a
 	}
 
-	return NewMaintenanceWindowValueMust(MaintenanceWindowValue{}.AttributeTypes(ctx), attributes), nil
+	return NewMaintenanceWindowValueV2Must(MaintenanceWindowValueV2{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t MaintenanceWindowType) ValueType(ctx context.Context) attr.Value {
-	return MaintenanceWindowValue{}
+func (t MaintenanceWindowTypeV2) ValueType(ctx context.Context) attr.Value {
+	return MaintenanceWindowValueV2{}
 }
 
-var _ basetypes.ObjectValuable = MaintenanceWindowValue{}
+var _ basetypes.ObjectValuable = MaintenanceWindowValueV2{}
 
-type MaintenanceWindowValue struct {
+type MaintenanceWindowValueV2 struct {
 	DayOfWeek   basetypes.Int64Value `tfsdk:"day_of_week"`
 	StartHour   basetypes.Int64Value `tfsdk:"start_hour"`
 	StartMinute basetypes.Int64Value `tfsdk:"start_minute"`
 	state       attr.ValueState
 }
 
-func (v MaintenanceWindowValue) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v MaintenanceWindowValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 3)
 
 	var val tftypes.Value
@@ -1002,19 +934,19 @@ func (v MaintenanceWindowValue) ToTerraformValue(ctx context.Context) (tftypes.V
 	}
 }
 
-func (v MaintenanceWindowValue) IsNull() bool {
+func (v MaintenanceWindowValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v MaintenanceWindowValue) IsUnknown() bool {
+func (v MaintenanceWindowValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v MaintenanceWindowValue) String() string {
-	return "MaintenanceWindowValue"
+func (v MaintenanceWindowValueV2) String() string {
+	return "MaintenanceWindowValueV2"
 }
 
-func (v MaintenanceWindowValue) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v MaintenanceWindowValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
@@ -1032,8 +964,8 @@ func (v MaintenanceWindowValue) ToObjectValue(ctx context.Context) (basetypes.Ob
 	return objVal, diags
 }
 
-func (v MaintenanceWindowValue) Equal(o attr.Value) bool {
-	other, ok := o.(MaintenanceWindowValue)
+func (v MaintenanceWindowValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(MaintenanceWindowValueV2)
 
 	if !ok {
 		return false
@@ -1062,15 +994,15 @@ func (v MaintenanceWindowValue) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v MaintenanceWindowValue) Type(ctx context.Context) attr.Type {
-	return MaintenanceWindowType{
+func (v MaintenanceWindowValueV2) Type(ctx context.Context) attr.Type {
+	return MaintenanceWindowTypeV2{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v MaintenanceWindowValue) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v MaintenanceWindowValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"day_of_week":  basetypes.Int64Type{},
 		"start_hour":   basetypes.Int64Type{},
@@ -1078,7 +1010,7 @@ func (v MaintenanceWindowValue) AttributeTypes(ctx context.Context) map[string]a
 	}
 }
 
-func (v MaintenanceWindowValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.MaintenanceWindowV1, diag.Diagnostics) {
+func (v MaintenanceWindowValueV2) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.MaintenanceWindowV2, diag.Diagnostics) {
 
 	var dayOfWeek *int
 	dayOfWeek = nil
@@ -1098,7 +1030,7 @@ func (v MaintenanceWindowValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dba
 		startMinute = sys11dbaassdk.Int64ToIntPtr(v.StartMinute.ValueInt64())
 	}
 
-	return &sys11dbaassdk.MaintenanceWindowV1{
+	return &sys11dbaassdk.MaintenanceWindowV2{
 		DayOfWeek:   dayOfWeek,
 		StartHour:   startHour,
 		StartMinute: startMinute,

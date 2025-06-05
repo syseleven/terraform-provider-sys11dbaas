@@ -268,6 +268,7 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 func (p *Sys11DBaaSProvider) Resources(ctx context.Context) []func() resource.Resource {
 	return []func() resource.Resource{
 		NewDatabaseResource,
+		NewDatabaseResourceV2,
 	}
 }
 
