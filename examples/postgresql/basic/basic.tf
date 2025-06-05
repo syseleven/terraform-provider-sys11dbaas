@@ -20,15 +20,15 @@ resource "sys11dbaas_database_v2" "postgresql-v2" {
     version   = 17.5
     password  = "veryS3cretPassword2"
     private_network_config = {
-      enabled = true
+      enabled            = true
       shared_subnet_cidr = "10.245.0.0/24"
-      allowed_cidrs = ["10.10.50.0/24", "10.245.0.0/24"]
+      allowed_cidrs      = ["10.10.50.0/24", "10.245.0.0/24"]
     }
   }
   service_config = {
-    disksize = 25
-    flavor   = "SCS-2V-4-50n"
-    region   = "dus2"
+    disksize   = 25
+    flavor     = "SCS-2V-4-50n"
+    region     = "dus2"
     remote_ips = ["176.74.56.225/26"]
   }
 }
