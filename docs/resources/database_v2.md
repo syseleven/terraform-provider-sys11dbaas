@@ -48,13 +48,13 @@ Required:
 Optional:
 
 - `password` (String, Sensitive) Password for the admin user.
-- `private_network_config` (Attributes) (see [below for nested schema](#nestedatt--application_config--private_network_config))
-- `public_network_config` (Attributes) (see [below for nested schema](#nestedatt--application_config--public_network_config))
+- `private_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--private_networking))
+- `public_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--public_networking))
 - `recovery` (Attributes) (see [below for nested schema](#nestedatt--application_config--recovery))
 - `scheduled_backups` (Attributes) Scheduled backups policy for the database. (see [below for nested schema](#nestedatt--application_config--scheduled_backups))
 
-<a id="nestedatt--application_config--private_network_config"></a>
-### Nested Schema for `application_config.private_network_config`
+<a id="nestedatt--application_config--private_networking"></a>
+### Nested Schema for `application_config.private_networking`
 
 Optional:
 
@@ -70,8 +70,8 @@ Read-Only:
 - `shared_subnet_id` (String) Openstack ID of the shared subnet.
 
 
-<a id="nestedatt--application_config--public_network_config"></a>
-### Nested Schema for `application_config.public_network_config`
+<a id="nestedatt--application_config--public_networking"></a>
+### Nested Schema for `application_config.public_networking`
 
 Optional:
 

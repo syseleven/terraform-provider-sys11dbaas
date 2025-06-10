@@ -173,7 +173,7 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 						Description:         "Minor version of PostgreSQL.",
 						MarkdownDescription: "Minor version of PostgreSQL.",
 					},
-					"private_network_config": schema.SingleNestedAttribute{
+					"private_networking": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
 							"enabled": schema.BoolAttribute{
 								Optional:            true,
@@ -244,7 +244,7 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 							objectplanmodifier.UseStateForUnknown(),
 						},
 					},
-					"public_network_config": schema.SingleNestedAttribute{
+					"public_networking": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
 							"enabled": schema.BoolAttribute{
 								Optional:            true,

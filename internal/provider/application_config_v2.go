@@ -296,40 +296,40 @@ func NewApplicationConfigValueV2(attributeTypes map[string]attr.Type, attributes
 			fmt.Sprintf(`scheduled_backups expected to be basetypes.ObjectValue, was: %T`, scheduledBackupsAttribute))
 	}
 
-	privateNetworkConfigAttribute, ok := attributes["private_network_config"]
+	privateNetworkingAttribute, ok := attributes["private_networking"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`private_network_config is missing from object`)
+			`private_networking is missing from object`)
 
 		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
-	privateNetworkConfigVal, ok := privateNetworkConfigAttribute.(basetypes.ObjectValue)
+	privateNetworkingVal, ok := privateNetworkingAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`private_network_config expected to be basetypes.ObjectValue, was: %T`, privateNetworkConfigAttribute))
+			fmt.Sprintf(`private_networking expected to be basetypes.ObjectValue, was: %T`, privateNetworkingAttribute))
 	}
 
-	publicNetworkConfigAttribute, ok := attributes["public_network_config"]
+	publicNetworkingAttribute, ok := attributes["public_networking"]
 
 	if !ok {
 		diags.AddError(
 			"Attribute Missing",
-			`public_network_config is missing from object`)
+			`public_networking is missing from object`)
 
 		return NewApplicationConfigValueV2Unknown(), diags
 	}
 
-	publicNetworkConfigVal, ok := publicNetworkConfigAttribute.(basetypes.ObjectValue)
+	publicNetworkingVal, ok := publicNetworkingAttribute.(basetypes.ObjectValue)
 
 	if !ok {
 		diags.AddError(
 			"Attribute Wrong Type",
-			fmt.Sprintf(`public_network_config expected to be basetypes.ObjectValue, was: %T`, publicNetworkConfigAttribute))
+			fmt.Sprintf(`public_networking expected to be basetypes.ObjectValue, was: %T`, publicNetworkingAttribute))
 	}
 
 	typeAttribute, ok := attributes["type"]
@@ -377,8 +377,8 @@ func NewApplicationConfigValueV2(attributeTypes map[string]attr.Type, attributes
 		Password:              passwordVal,
 		Recovery:              recoveryVal,
 		ScheduledBackups:      scheduledBackupsVal,
-		PrivateNetworkConfig:  privateNetworkConfigVal,
-		PublicNetworkConfig:   publicNetworkConfigVal,
+		PrivateNetworking:     privateNetworkingVal,
+		PublicNetworking:      publicNetworkingVal,
 		ApplicationConfigType: typeVal,
 		Version:               versionVal,
 		state:                 attr.ValueStateKnown,
@@ -457,8 +457,8 @@ type ApplicationConfigValueV2 struct {
 	Password              basetypes.StringValue `tfsdk:"password"`
 	Recovery              basetypes.ObjectValue `tfsdk:"recovery"`
 	ScheduledBackups      basetypes.ObjectValue `tfsdk:"scheduled_backups"`
-	PrivateNetworkConfig  basetypes.ObjectValue `tfsdk:"private_network_config"`
-	PublicNetworkConfig   basetypes.ObjectValue `tfsdk:"public_network_config"`
+	PrivateNetworking     basetypes.ObjectValue `tfsdk:"private_networking"`
+	PublicNetworking      basetypes.ObjectValue `tfsdk:"public_networking"`
 	ApplicationConfigType basetypes.StringValue `tfsdk:"type"`
 	Version               basetypes.StringValue `tfsdk:"version"`
 	state                 attr.ValueState
@@ -478,11 +478,11 @@ func (v ApplicationConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes
 	attrTypes["scheduled_backups"] = basetypes.ObjectType{
 		AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
-	attrTypes["private_network_config"] = basetypes.ObjectType{
-		AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+	attrTypes["private_networking"] = basetypes.ObjectType{
+		AttrTypes: PrivateNetworkingValueV2{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
-	attrTypes["public_network_config"] = basetypes.ObjectType{
-		AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+	attrTypes["public_networking"] = basetypes.ObjectType{
+		AttrTypes: PublicNetworkingValueV2{}.AttributeTypes(ctx),
 	}.TerraformType(ctx)
 	attrTypes["type"] = basetypes.StringType{}.TerraformType(ctx)
 	attrTypes["version"] = basetypes.StringType{}.TerraformType(ctx)
@@ -525,21 +525,21 @@ func (v ApplicationConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes
 
 		vals["scheduled_backups"] = val
 
-		val, err = v.PrivateNetworkConfig.ToTerraformValue(ctx)
+		val, err = v.PrivateNetworking.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["private_network_config"] = val
+		vals["private_networking"] = val
 
-		val, err = v.PublicNetworkConfig.ToTerraformValue(ctx)
+		val, err = v.PublicNetworking.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
 		}
 
-		vals["public_network_config"] = val
+		vals["public_networking"] = val
 
 		val, err = v.ApplicationConfigType.ToTerraformValue(ctx)
 
@@ -628,45 +628,45 @@ func (v ApplicationConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.
 		)
 	}
 
-	var privateNetworkConfig basetypes.ObjectValue
+	var privateNetworking basetypes.ObjectValue
 
-	if v.PrivateNetworkConfig.IsNull() {
-		privateNetworkConfig = types.ObjectNull(
-			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+	if v.PrivateNetworking.IsNull() {
+		privateNetworking = types.ObjectNull(
+			PrivateNetworkingValueV2{}.AttributeTypes(ctx),
 		)
 	}
 
-	if v.PrivateNetworkConfig.IsUnknown() {
-		privateNetworkConfig = types.ObjectUnknown(
-			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+	if v.PrivateNetworking.IsUnknown() {
+		privateNetworking = types.ObjectUnknown(
+			PrivateNetworkingValueV2{}.AttributeTypes(ctx),
 		)
 	}
 
-	if !v.PrivateNetworkConfig.IsNull() && !v.PrivateNetworkConfig.IsUnknown() {
-		privateNetworkConfig = types.ObjectValueMust(
-			PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
-			v.PrivateNetworkConfig.Attributes(),
+	if !v.PrivateNetworking.IsNull() && !v.PrivateNetworking.IsUnknown() {
+		privateNetworking = types.ObjectValueMust(
+			PrivateNetworkingValueV2{}.AttributeTypes(ctx),
+			v.PrivateNetworking.Attributes(),
 		)
 	}
 
-	var publicNetworkConfig basetypes.ObjectValue
+	var publicNetworking basetypes.ObjectValue
 
-	if v.PublicNetworkConfig.IsNull() {
-		publicNetworkConfig = types.ObjectNull(
-			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+	if v.PublicNetworking.IsNull() {
+		publicNetworking = types.ObjectNull(
+			PublicNetworkingValueV2{}.AttributeTypes(ctx),
 		)
 	}
 
-	if v.PublicNetworkConfig.IsUnknown() {
-		publicNetworkConfig = types.ObjectUnknown(
-			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+	if v.PublicNetworking.IsUnknown() {
+		publicNetworking = types.ObjectUnknown(
+			PublicNetworkingValueV2{}.AttributeTypes(ctx),
 		)
 	}
 
-	if !v.PublicNetworkConfig.IsNull() && !v.PublicNetworkConfig.IsUnknown() {
-		publicNetworkConfig = types.ObjectValueMust(
-			PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
-			v.PublicNetworkConfig.Attributes(),
+	if !v.PublicNetworking.IsNull() && !v.PublicNetworking.IsUnknown() {
+		publicNetworking = types.ObjectValueMust(
+			PublicNetworkingValueV2{}.AttributeTypes(ctx),
+			v.PublicNetworking.Attributes(),
 		)
 	}
 
@@ -680,24 +680,24 @@ func (v ApplicationConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.
 			"scheduled_backups": basetypes.ObjectType{
 				AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
 			},
-			"private_network_config": basetypes.ObjectType{
-				AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+			"private_networking": basetypes.ObjectType{
+				AttrTypes: PrivateNetworkingValueV2{}.AttributeTypes(ctx),
 			},
-			"public_network_config": basetypes.ObjectType{
-				AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+			"public_networking": basetypes.ObjectType{
+				AttrTypes: PublicNetworkingValueV2{}.AttributeTypes(ctx),
 			},
 			"type":    basetypes.StringType{},
 			"version": basetypes.StringType{},
 		},
 		map[string]attr.Value{
-			"instances":              v.Instances,
-			"password":               v.Password,
-			"recovery":               recovery,
-			"scheduled_backups":      scheduledBackups,
-			"private_network_config": privateNetworkConfig,
-			"public_network_config":  publicNetworkConfig,
-			"type":                   v.ApplicationConfigType,
-			"version":                v.Version,
+			"instances":          v.Instances,
+			"password":           v.Password,
+			"recovery":           recovery,
+			"scheduled_backups":  scheduledBackups,
+			"private_networking": privateNetworking,
+			"public_networking":  publicNetworking,
+			"type":               v.ApplicationConfigType,
+			"version":            v.Version,
 		})
 
 	return objVal, diags
@@ -734,11 +734,11 @@ func (v ApplicationConfigValueV2) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.PrivateNetworkConfig.Equal(other.PrivateNetworkConfig) {
+	if !v.PrivateNetworking.Equal(other.PrivateNetworking) {
 		return false
 	}
 
-	if !v.PublicNetworkConfig.Equal(other.PublicNetworkConfig) {
+	if !v.PublicNetworking.Equal(other.PublicNetworking) {
 		return false
 	}
 
@@ -771,11 +771,11 @@ func (v ApplicationConfigValueV2) AttributeTypes(ctx context.Context) map[string
 		"scheduled_backups": basetypes.ObjectType{
 			AttrTypes: ScheduledBackupsValueV2{}.AttributeTypes(ctx),
 		},
-		"private_network_config": basetypes.ObjectType{
-			AttrTypes: PrivateNetworkConfigValueV2{}.AttributeTypes(ctx),
+		"private_networking": basetypes.ObjectType{
+			AttrTypes: PrivateNetworkingValueV2{}.AttributeTypes(ctx),
 		},
-		"public_network_config": basetypes.ObjectType{
-			AttrTypes: PublicNetworkConfigValueV2{}.AttributeTypes(ctx),
+		"public_networking": basetypes.ObjectType{
+			AttrTypes: PublicNetworkingValueV2{}.AttributeTypes(ctx),
 		},
 		"type":    basetypes.StringType{},
 		"version": basetypes.StringType{},

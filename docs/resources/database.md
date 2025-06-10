@@ -34,7 +34,7 @@ resource "sys11dbaas_database_v2" "postgresql-v2" {
     type      = "postgresql"
     version   = 17.5
     password  = "veryS3cretPassword2"
-    private_network_config = {
+    private_networking = {
       enabled            = true
       shared_subnet_cidr = "10.245.0.0/24"
       allowed_cidrs      = ["10.10.50.0/24", "10.245.0.0/24"]
@@ -57,11 +57,11 @@ output "db-v2-status" {
 }
 
 output "db-v2-subnet" {
-  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_network_config.shared_subnet_id
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.shared_subnet_id
 }
 
 output "db-v2-network" {
-  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_network_config.shared_network_id
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.shared_network_id
 }
 ```
 

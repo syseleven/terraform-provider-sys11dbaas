@@ -174,28 +174,28 @@ func (r *DatabaseResourceV2) Create(ctx context.Context, req resource.CreateRequ
 		}
 	}
 
-	var privateNetworkConfig *sys11dbaassdk.PSQLPrivateNetworkConfigRequestV2
-	if !applicationConfig.PrivateNetworkConfig.IsUnknown() {
-		privateNetworkConfigObj, diags := NewPrivateNetworkConfigValueV2(applicationConfig.PrivateNetworkConfig.AttributeTypes(ctx), applicationConfig.PrivateNetworkConfig.Attributes())
+	var privateNetworking *sys11dbaassdk.PSQLPrivateNetworkingRequestV2
+	if !applicationConfig.PrivateNetworking.IsUnknown() {
+		privateNetworkingObj, diags := NewPrivateNetworkingValueV2(applicationConfig.PrivateNetworking.AttributeTypes(ctx), applicationConfig.PrivateNetworking.Attributes())
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		privateNetworkConfig, diags = privateNetworkConfigObj.ToDBaaSSdkRequest(ctx)
+		privateNetworking, diags = privateNetworkingObj.ToDBaaSSdkRequest(ctx)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
-	var publicNetworkConfig *sys11dbaassdk.PSQLPublicNetworkConfigRequestV2
-	if !applicationConfig.PublicNetworkConfig.IsUnknown() {
-		publicNetworkConfigObj, diags := NewPublicNetworkConfigValueV2(applicationConfig.PublicNetworkConfig.AttributeTypes(ctx), applicationConfig.PublicNetworkConfig.Attributes())
+	var publicNetworking *sys11dbaassdk.PSQLPublicNetworkingRequestV2
+	if !applicationConfig.PublicNetworking.IsUnknown() {
+		publicNetworkingObj, diags := NewPublicNetworkingValueV2(applicationConfig.PublicNetworking.AttributeTypes(ctx), applicationConfig.PublicNetworking.Attributes())
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		publicNetworkConfig, diags = publicNetworkConfigObj.ToDBaaSSdkRequest(ctx)
+		publicNetworking, diags = publicNetworkingObj.ToDBaaSSdkRequest(ctx)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -215,13 +215,13 @@ func (r *DatabaseResourceV2) Create(ctx context.Context, req resource.CreateRequ
 			MaintenanceWindow: maintenanceWindow,
 		},
 		ApplicationConfig: &sys11dbaassdk.PSQLApplicationConfigRequestV2{
-			Type:                 applicationConfig.ApplicationConfigType.ValueString(),
-			Password:             applicationConfig.Password.ValueString(),
-			Instances:            sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
-			Version:              applicationConfig.Version.ValueString(),
-			ScheduledBackups:     backupSchedule,
-			PrivateNetworkConfig: privateNetworkConfig,
-			PublicNetworkConfig:  publicNetworkConfig,
+			Type:              applicationConfig.ApplicationConfigType.ValueString(),
+			Password:          applicationConfig.Password.ValueString(),
+			Instances:         sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
+			Version:           applicationConfig.Version.ValueString(),
+			ScheduledBackups:  backupSchedule,
+			PrivateNetworking: privateNetworking,
+			PublicNetworking:  publicNetworking,
 		},
 	}
 
@@ -380,28 +380,28 @@ func (r *DatabaseResourceV2) Update(ctx context.Context, req resource.UpdateRequ
 		}
 	}
 
-	var privateNetworkConfig *sys11dbaassdk.PSQLPrivateNetworkConfigRequestV2
-	if !applicationConfig.PrivateNetworkConfig.IsUnknown() {
-		privateNetworkConfigObj, diags := NewPrivateNetworkConfigValueV2(applicationConfig.PrivateNetworkConfig.AttributeTypes(ctx), applicationConfig.PrivateNetworkConfig.Attributes())
+	var privateNetworking *sys11dbaassdk.PSQLPrivateNetworkingRequestV2
+	if !applicationConfig.PrivateNetworking.IsUnknown() {
+		privateNetworkingObj, diags := NewPrivateNetworkingValueV2(applicationConfig.PrivateNetworking.AttributeTypes(ctx), applicationConfig.PrivateNetworking.Attributes())
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		privateNetworkConfig, diags = privateNetworkConfigObj.ToDBaaSSdkRequest(ctx)
+		privateNetworking, diags = privateNetworkingObj.ToDBaaSSdkRequest(ctx)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
 	}
 
-	var publicNetworkConfig *sys11dbaassdk.PSQLPublicNetworkConfigRequestV2
-	if !applicationConfig.PublicNetworkConfig.IsUnknown() {
-		publicNetworkConfigObj, diags := NewPublicNetworkConfigValueV2(applicationConfig.PublicNetworkConfig.AttributeTypes(ctx), applicationConfig.PublicNetworkConfig.Attributes())
+	var publicNetworking *sys11dbaassdk.PSQLPublicNetworkingRequestV2
+	if !applicationConfig.PublicNetworking.IsUnknown() {
+		publicNetworkingObj, diags := NewPublicNetworkingValueV2(applicationConfig.PublicNetworking.AttributeTypes(ctx), applicationConfig.PublicNetworking.Attributes())
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		publicNetworkConfig, diags = publicNetworkConfigObj.ToDBaaSSdkRequest(ctx)
+		publicNetworking, diags = publicNetworkingObj.ToDBaaSSdkRequest(ctx)
 		resp.Diagnostics.Append(diags...)
 		if resp.Diagnostics.HasError() {
 			return
@@ -421,12 +421,12 @@ func (r *DatabaseResourceV2) Update(ctx context.Context, req resource.UpdateRequ
 			MaintenanceWindow: maintenanceWindow,
 		},
 		ApplicationConfig: &sys11dbaassdk.PSQLApplicationConfigUpdateRequestV2{
-			Password:             applicationConfig.Password.ValueString(),
-			Instances:            sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
-			Version:              applicationConfig.Version.ValueString(),
-			ScheduledBackups:     backupSchedule,
-			PrivateNetworkConfig: privateNetworkConfig,
-			PublicNetworkConfig:  publicNetworkConfig,
+			Password:          applicationConfig.Password.ValueString(),
+			Instances:         sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
+			Version:           applicationConfig.Version.ValueString(),
+			ScheduledBackups:  backupSchedule,
+			PrivateNetworking: privateNetworking,
+			PublicNetworking:  publicNetworking,
 		},
 	}
 
@@ -527,26 +527,26 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
 	}.ToObjectValue(ctx)
 
-	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworkConfig.AllowedCIDRs)
+	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
-	privateNetworkConfigObjVal, _ := PrivateNetworkConfigValueV2{
-		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworkConfig.Enabled),
-		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.Hostname),
-		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.IPAddress),
+	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
+		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
+		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
+		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
 		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworkConfig.SharedSubnetCIDR),
-		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.SharedSubnetID),
-		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.SharedNetworkID),
+		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR),
+		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
+		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
 	}.ToObjectValue(ctx)
 
-	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworkConfig.AllowedCIDRs)
+	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
-	publicNetworkConfigObjVal, _ := PublicNetworkConfigValueV2{
-		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworkConfig.Enabled),
-		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworkConfig.Hostname),
-		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworkConfig.IPAddress),
+	publicNetworkingObjVal, _ := PublicNetworkingValueV2{
+		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
+		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
+		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
 		AllowedCIDRs: publicAllowedCIRDs,
 	}.ToObjectValue(ctx)
 
@@ -566,8 +566,8 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
 	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
 	targetApplicationConfig.Recovery = recoveryObjValue
-	targetApplicationConfig.PrivateNetworkConfig = privateNetworkConfigObjVal
-	targetApplicationConfig.PublicNetworkConfig = publicNetworkConfigObjVal
+	targetApplicationConfig.PrivateNetworking = privateNetworkingObjVal
+	targetApplicationConfig.PublicNetworking = publicNetworkingObjVal
 
 	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
 
@@ -626,26 +626,26 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
 	}.ToObjectValue(ctx)
 
-	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworkConfig.AllowedCIDRs)
+	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
-	privateNetworkConfigObjVal, _ := PrivateNetworkConfigValueV2{
-		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworkConfig.Enabled),
-		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.Hostname),
-		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.IPAddress),
+	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
+		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
+		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
+		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
 		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworkConfig.SharedSubnetCIDR),
-		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.SharedSubnetID),
-		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworkConfig.SharedNetworkID),
+		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR),
+		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
+		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
 	}.ToObjectValue(ctx)
 
-	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworkConfig.AllowedCIDRs)
+	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
-	publicNetworkConfigObjVal, _ := PublicNetworkConfigValueV2{
-		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworkConfig.Enabled),
-		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworkConfig.Hostname),
-		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworkConfig.IPAddress),
+	publicNetworkingObjVal, _ := PublicNetworkingValueV2{
+		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
+		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
+		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
 		AllowedCIDRs: publicAllowedCIRDs,
 	}.ToObjectValue(ctx)
 
@@ -667,8 +667,8 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
 	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
 	targetApplicationConfig.Recovery = recoveryObjValue
-	targetApplicationConfig.PrivateNetworkConfig = privateNetworkConfigObjVal
-	targetApplicationConfig.PublicNetworkConfig = publicNetworkConfigObjVal
+	targetApplicationConfig.PrivateNetworking = privateNetworkingObjVal
+	targetApplicationConfig.PublicNetworking = publicNetworkingObjVal
 
 	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
 

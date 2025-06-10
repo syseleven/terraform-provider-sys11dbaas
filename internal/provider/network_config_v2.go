@@ -13,14 +13,14 @@ import (
 	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
 )
 
-var _ basetypes.ObjectTypable = PrivateNetworkConfigTypeV2{}
+var _ basetypes.ObjectTypable = PrivateNetworkingTypeV2{}
 
-type PrivateNetworkConfigTypeV2 struct {
+type PrivateNetworkingTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t PrivateNetworkConfigTypeV2) Equal(o attr.Type) bool {
-	other, ok := o.(PrivateNetworkConfigTypeV2)
+func (t PrivateNetworkingTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(PrivateNetworkingTypeV2)
 
 	if !ok {
 		return false
@@ -29,11 +29,11 @@ func (t PrivateNetworkConfigTypeV2) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t PrivateNetworkConfigTypeV2) String() string {
-	return "PrivateNetworkConfigTypeV2"
+func (t PrivateNetworkingTypeV2) String() string {
+	return "PrivateNetworkingTypeV2"
 }
 
-func (t PrivateNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t PrivateNetworkingTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -168,7 +168,7 @@ func (t PrivateNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in base
 		return nil, diags
 	}
 
-	return PrivateNetworkConfigValueV2{
+	return PrivateNetworkingValueV2{
 		Enabled:          enabledVal,
 		Hostname:         hostnameVal,
 		IPAddress:        ipAddressVal,
@@ -180,19 +180,19 @@ func (t PrivateNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in base
 	}, diags
 }
 
-func NewPrivateNetworkConfigValueV2Null() PrivateNetworkConfigValueV2 {
-	return PrivateNetworkConfigValueV2{
+func NewPrivateNetworkingValueV2Null() PrivateNetworkingValueV2 {
+	return PrivateNetworkingValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewPrivateNetworkConfigValueV2Unknown() PrivateNetworkConfigValueV2 {
-	return PrivateNetworkConfigValueV2{
+func NewPrivateNetworkingValueV2Unknown() PrivateNetworkingValueV2 {
+	return PrivateNetworkingValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (PrivateNetworkConfigValueV2, diag.Diagnostics) {
+func NewPrivateNetworkingValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (PrivateNetworkingValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -203,11 +203,11 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 
 		if !ok {
 			diags.AddError(
-				"Missing PrivateNetworkConfigValueV2 Attribute Value",
-				"While creating a PrivateNetworkConfigValueV2 value, a missing attribute value was detected. "+
-					"A PrivateNetworkConfigValueV2 must contain values for all attributes, even if null or unknown. "+
+				"Missing PrivateNetworkingValueV2 Attribute Value",
+				"While creating a PrivateNetworkingValueV2 value, a missing attribute value was detected. "+
+					"A PrivateNetworkingValueV2 must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("PrivateNetworkConfigValueV2 Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("PrivateNetworkingValueV2 Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -215,12 +215,12 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid PrivateNetworkConfigValueV2 Attribute Type",
-				"While creating a PrivateNetworkConfigValueV2 value, an invalid attribute value was detected. "+
-					"A PrivateNetworkConfigValueV2 must use a matching attribute type for the value. "+
+				"Invalid PrivateNetworkingValueV2 Attribute Type",
+				"While creating a PrivateNetworkingValueV2 value, an invalid attribute value was detected. "+
+					"A PrivateNetworkingValueV2 must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("PrivateNetworkConfigValueV2 Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("PrivateNetworkConfigValueV2 Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("PrivateNetworkingValueV2 Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("PrivateNetworkingValueV2 Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -230,17 +230,17 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 
 		if !ok {
 			diags.AddError(
-				"Extra PrivateNetworkConfigValueV2 Attribute Value",
-				"While creating a PrivateNetworkConfigValueV2 value, an extra attribute value was detected. "+
-					"A PrivateNetworkConfigValueV2 must not contain values beyond the expected attribute types. "+
+				"Extra PrivateNetworkingValueV2 Attribute Value",
+				"While creating a PrivateNetworkingValueV2 value, an extra attribute value was detected. "+
+					"A PrivateNetworkingValueV2 must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra PrivateNetworkConfigValueV2 Attribute Name: %s", name),
+					fmt.Sprintf("Extra PrivateNetworkingValueV2 Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	enabledAttribute, ok := attributes["enabled"]
@@ -250,7 +250,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`enabled is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
@@ -268,7 +268,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`hostname is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	hostnameVal, ok := hostnameAttribute.(basetypes.StringValue)
@@ -286,7 +286,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`ip_address is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	ipAddressVal, ok := ipAddressAttribute.(basetypes.StringValue)
@@ -304,7 +304,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`shared_subnet_cidr is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	sharedSubnetCIDRVal, ok := sharedSubnetCIDRAttribute.(basetypes.StringValue)
@@ -322,7 +322,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`allowed_cidrs is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	allowedCIDRsVal, ok := allowedCIDRsAttribute.(basetypes.ListValue)
@@ -340,7 +340,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`shared_subnet_id is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	sharedSubnetIDVal, ok := sharedSubnetIDAttribute.(basetypes.StringValue)
@@ -358,7 +358,7 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 			"Attribute Missing",
 			`shared_network_id is missing from object`)
 
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
 	sharedNetworkIDVal, ok := sharedNetworkIDAttribute.(basetypes.StringValue)
@@ -370,10 +370,10 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 	}
 
 	if diags.HasError() {
-		return NewPrivateNetworkConfigValueV2Unknown(), diags
+		return NewPrivateNetworkingValueV2Unknown(), diags
 	}
 
-	return PrivateNetworkConfigValueV2{
+	return PrivateNetworkingValueV2{
 		Enabled:          enabledVal,
 		AllowedCIDRs:     allowedCIDRsVal,
 		Hostname:         hostnameVal,
@@ -385,8 +385,8 @@ func NewPrivateNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribu
 	}, diags
 }
 
-func NewPrivateNetworkConfigValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) PrivateNetworkConfigValueV2 {
-	object, diags := NewPrivateNetworkConfigValueV2(attributeTypes, attributes)
+func NewPrivateNetworkingValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) PrivateNetworkingValueV2 {
+	object, diags := NewPrivateNetworkingValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -400,15 +400,15 @@ func NewPrivateNetworkConfigValueV2Must(attributeTypes map[string]attr.Type, att
 				diagnostic.Detail()))
 		}
 
-		panic("NewPrivateNetworkConfigValueV2Must received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewPrivateNetworkingValueV2Must received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t PrivateNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t PrivateNetworkingTypeV2) ValueFromTerraformV2(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewPrivateNetworkConfigValueV2Null(), nil
+		return NewPrivateNetworkingValueV2Null(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -416,11 +416,11 @@ func (t PrivateNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in
 	}
 
 	if !in.IsKnown() {
-		return NewPrivateNetworkConfigValueV2Unknown(), nil
+		return NewPrivateNetworkingValueV2Unknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewPrivateNetworkConfigValueV2Null(), nil
+		return NewPrivateNetworkingValueV2Null(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -443,16 +443,16 @@ func (t PrivateNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in
 		attributes[k] = a
 	}
 
-	return NewPrivateNetworkConfigValueV2Must(PrivateNetworkConfigValueV2{}.AttributeTypes(ctx), attributes), nil
+	return NewPrivateNetworkingValueV2Must(PrivateNetworkingValueV2{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t PrivateNetworkConfigTypeV2) ValueType(ctx context.Context) attr.Value {
-	return PrivateNetworkConfigValueV2{}
+func (t PrivateNetworkingTypeV2) ValueType(ctx context.Context) attr.Value {
+	return PrivateNetworkingValueV2{}
 }
 
-var _ basetypes.ObjectValuable = PrivateNetworkConfigValueV2{}
+var _ basetypes.ObjectValuable = PrivateNetworkingValueV2{}
 
-type PrivateNetworkConfigValueV2 struct {
+type PrivateNetworkingValueV2 struct {
 	Enabled          basetypes.BoolValue   `tfsdk:"enabled"`
 	AllowedCIDRs     basetypes.ListValue   `tfsdk:"allowed_cidrs"`
 	SharedSubnetCIDR basetypes.StringValue `tfsdk:"shared_subnet_cidr"`
@@ -463,7 +463,7 @@ type PrivateNetworkConfigValueV2 struct {
 	state            attr.ValueState
 }
 
-func (v PrivateNetworkConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v PrivateNetworkingValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
@@ -553,19 +553,19 @@ func (v PrivateNetworkConfigValueV2) ToTerraformValue(ctx context.Context) (tfty
 	}
 }
 
-func (v PrivateNetworkConfigValueV2) IsNull() bool {
+func (v PrivateNetworkingValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v PrivateNetworkConfigValueV2) IsUnknown() bool {
+func (v PrivateNetworkingValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v PrivateNetworkConfigValueV2) String() string {
-	return "PrivateNetworkConfigValueV2"
+func (v PrivateNetworkingValueV2) String() string {
+	return "PrivateNetworkingValueV2"
 }
 
-func (v PrivateNetworkConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v PrivateNetworkingValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
@@ -591,8 +591,8 @@ func (v PrivateNetworkConfigValueV2) ToObjectValue(ctx context.Context) (basetyp
 	return objVal, diags
 }
 
-func (v PrivateNetworkConfigValueV2) Equal(o attr.Value) bool {
-	other, ok := o.(PrivateNetworkConfigValueV2)
+func (v PrivateNetworkingValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(PrivateNetworkingValueV2)
 
 	if !ok {
 		return false
@@ -637,15 +637,15 @@ func (v PrivateNetworkConfigValueV2) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v PrivateNetworkConfigValueV2) Type(ctx context.Context) attr.Type {
-	return PrivateNetworkConfigTypeV2{
+func (v PrivateNetworkingValueV2) Type(ctx context.Context) attr.Type {
+	return PrivateNetworkingTypeV2{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v PrivateNetworkConfigValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v PrivateNetworkingValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"enabled":            basetypes.BoolType{},
 		"hostname":           basetypes.StringType{},
@@ -657,7 +657,7 @@ func (v PrivateNetworkConfigValueV2) AttributeTypes(ctx context.Context) map[str
 	}
 }
 
-func (v PrivateNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkConfigResponseV2, diag.Diagnostics) {
+func (v PrivateNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkingResponseV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -666,7 +666,7 @@ func (v PrivateNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*s
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPrivateNetworkConfigResponseV2{
+	return &sys11dbaassdk.PSQLPrivateNetworkingResponseV2{
 		Enabled:          v.Enabled.ValueBool(),
 		Hostname:         v.Hostname.ValueString(),
 		IPAddress:        v.IPAddress.ValueString(),
@@ -677,7 +677,7 @@ func (v PrivateNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*s
 	}, diags
 }
 
-func (v PrivateNetworkConfigValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkConfigRequestV2, diag.Diagnostics) {
+func (v PrivateNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkingRequestV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -686,23 +686,23 @@ func (v PrivateNetworkConfigValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sy
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPrivateNetworkConfigRequestV2{
+	return &sys11dbaassdk.PSQLPrivateNetworkingRequestV2{
 		Enabled:          v.Enabled.ValueBool(),
 		AllowedCIDRs:     &ipList,
 		SharedSubnetCIDR: v.SharedSubnetCIDR.ValueStringPointer(),
 	}, diags
 }
 
-// PublicNetworkConfig
+// PublicNetworking
 
-var _ basetypes.ObjectTypable = PublicNetworkConfigTypeV2{}
+var _ basetypes.ObjectTypable = PublicNetworkingTypeV2{}
 
-type PublicNetworkConfigTypeV2 struct {
+type PublicNetworkingTypeV2 struct {
 	basetypes.ObjectType
 }
 
-func (t PublicNetworkConfigTypeV2) Equal(o attr.Type) bool {
-	other, ok := o.(PublicNetworkConfigTypeV2)
+func (t PublicNetworkingTypeV2) Equal(o attr.Type) bool {
+	other, ok := o.(PublicNetworkingTypeV2)
 
 	if !ok {
 		return false
@@ -711,11 +711,11 @@ func (t PublicNetworkConfigTypeV2) Equal(o attr.Type) bool {
 	return t.ObjectType.Equal(other.ObjectType)
 }
 
-func (t PublicNetworkConfigTypeV2) String() string {
-	return "PublicNetworkConfigTypeV2"
+func (t PublicNetworkingTypeV2) String() string {
+	return "PublicNetworkingTypeV2"
 }
 
-func (t PublicNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
+func (t PublicNetworkingTypeV2) ValueFromObject(ctx context.Context, in basetypes.ObjectValue) (basetypes.ObjectValuable, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	attributes := in.Attributes()
@@ -796,7 +796,7 @@ func (t PublicNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in baset
 		return nil, diags
 	}
 
-	return PublicNetworkConfigValueV2{
+	return PublicNetworkingValueV2{
 		Enabled:      enabledVal,
 		Hostname:     hostnameVal,
 		IPAddress:    ipAddressVal,
@@ -805,19 +805,19 @@ func (t PublicNetworkConfigTypeV2) ValueFromObject(ctx context.Context, in baset
 	}, diags
 }
 
-func NewPublicNetworkConfigValueV2Null() PublicNetworkConfigValueV2 {
-	return PublicNetworkConfigValueV2{
+func NewPublicNetworkingValueV2Null() PublicNetworkingValueV2 {
+	return PublicNetworkingValueV2{
 		state: attr.ValueStateNull,
 	}
 }
 
-func NewPublicNetworkConfigValueV2Unknown() PublicNetworkConfigValueV2 {
-	return PublicNetworkConfigValueV2{
+func NewPublicNetworkingValueV2Unknown() PublicNetworkingValueV2 {
+	return PublicNetworkingValueV2{
 		state: attr.ValueStateUnknown,
 	}
 }
 
-func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (PublicNetworkConfigValueV2, diag.Diagnostics) {
+func NewPublicNetworkingValueV2(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) (PublicNetworkingValueV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	// Reference: https://github.com/hashicorp/terraform-plugin-framework/issues/521
@@ -828,11 +828,11 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 
 		if !ok {
 			diags.AddError(
-				"Missing PublicNetworkConfigValueV2 Attribute Value",
-				"While creating a PublicNetworkConfigValueV2 value, a missing attribute value was detected. "+
-					"A PublicNetworkConfigValueV2 must contain values for all attributes, even if null or unknown. "+
+				"Missing PublicNetworkingValueV2 Attribute Value",
+				"While creating a PublicNetworkingValueV2 value, a missing attribute value was detected. "+
+					"A PublicNetworkingValueV2 must contain values for all attributes, even if null or unknown. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("PublicNetworkConfigValueV2 Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
+					fmt.Sprintf("PublicNetworkingValueV2 Attribute Name (%s) Expected Type: %s", name, attributeType.String()),
 			)
 
 			continue
@@ -840,12 +840,12 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 
 		if !attributeType.Equal(attribute.Type(ctx)) {
 			diags.AddError(
-				"Invalid PublicNetworkConfigValueV2 Attribute Type",
-				"While creating a PublicNetworkConfigValueV2 value, an invalid attribute value was detected. "+
-					"A PublicNetworkConfigValueV2 must use a matching attribute type for the value. "+
+				"Invalid PublicNetworkingValueV2 Attribute Type",
+				"While creating a PublicNetworkingValueV2 value, an invalid attribute value was detected. "+
+					"A PublicNetworkingValueV2 must use a matching attribute type for the value. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("PublicNetworkConfigValueV2 Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
-					fmt.Sprintf("PublicNetworkConfigValueV2 Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
+					fmt.Sprintf("PublicNetworkingValueV2 Attribute Name (%s) Expected Type: %s\n", name, attributeType.String())+
+					fmt.Sprintf("PublicNetworkingValueV2 Attribute Name (%s) Given Type: %s", name, attribute.Type(ctx)),
 			)
 		}
 	}
@@ -855,17 +855,17 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 
 		if !ok {
 			diags.AddError(
-				"Extra PublicNetworkConfigValueV2 Attribute Value",
-				"While creating a PublicNetworkConfigValueV2 value, an extra attribute value was detected. "+
-					"A PublicNetworkConfigValueV2 must not contain values beyond the expected attribute types. "+
+				"Extra PublicNetworkingValueV2 Attribute Value",
+				"While creating a PublicNetworkingValueV2 value, an extra attribute value was detected. "+
+					"A PublicNetworkingValueV2 must not contain values beyond the expected attribute types. "+
 					"This is always an issue with the provider and should be reported to the provider developers.\n\n"+
-					fmt.Sprintf("Extra PublicNetworkConfigValueV2 Attribute Name: %s", name),
+					fmt.Sprintf("Extra PublicNetworkingValueV2 Attribute Name: %s", name),
 			)
 		}
 	}
 
 	if diags.HasError() {
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
 	enabledAttribute, ok := attributes["enabled"]
@@ -875,7 +875,7 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 			"Attribute Missing",
 			`enabled is missing from object`)
 
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
 	enabledVal, ok := enabledAttribute.(basetypes.BoolValue)
@@ -893,7 +893,7 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 			"Attribute Missing",
 			`hostname is missing from object`)
 
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
 	hostnameVal, ok := hostnameAttribute.(basetypes.StringValue)
@@ -911,7 +911,7 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 			"Attribute Missing",
 			`ip_address is missing from object`)
 
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
 	ipAddressVal, ok := ipAddressAttribute.(basetypes.StringValue)
@@ -929,7 +929,7 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 			"Attribute Missing",
 			`allowed_cidrs is missing from object`)
 
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
 	allowedCIDRsVal, ok := allowedCIDRsAttribute.(basetypes.ListValue)
@@ -941,10 +941,10 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 	}
 
 	if diags.HasError() {
-		return NewPublicNetworkConfigValueV2Unknown(), diags
+		return NewPublicNetworkingValueV2Unknown(), diags
 	}
 
-	return PublicNetworkConfigValueV2{
+	return PublicNetworkingValueV2{
 		Enabled:      enabledVal,
 		AllowedCIDRs: allowedCIDRsVal,
 		Hostname:     hostnameVal,
@@ -953,8 +953,8 @@ func NewPublicNetworkConfigValueV2(attributeTypes map[string]attr.Type, attribut
 	}, diags
 }
 
-func NewPublicNetworkConfigValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) PublicNetworkConfigValueV2 {
-	object, diags := NewPublicNetworkConfigValueV2(attributeTypes, attributes)
+func NewPublicNetworkingValueV2Must(attributeTypes map[string]attr.Type, attributes map[string]attr.Value) PublicNetworkingValueV2 {
+	object, diags := NewPublicNetworkingValueV2(attributeTypes, attributes)
 
 	if diags.HasError() {
 		// This could potentially be added to the diag package.
@@ -968,15 +968,15 @@ func NewPublicNetworkConfigValueV2Must(attributeTypes map[string]attr.Type, attr
 				diagnostic.Detail()))
 		}
 
-		panic("NewPublicNetworkConfigValueV2Must received error(s): " + strings.Join(diagsStrings, "\n"))
+		panic("NewPublicNetworkingValueV2Must received error(s): " + strings.Join(diagsStrings, "\n"))
 	}
 
 	return object
 }
 
-func (t PublicNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in tftypes.Value) (attr.Value, error) {
+func (t PublicNetworkingTypeV2) ValueFromTerraformV2(ctx context.Context, in tftypes.Value) (attr.Value, error) {
 	if in.Type() == nil {
-		return NewPublicNetworkConfigValueV2Null(), nil
+		return NewPublicNetworkingValueV2Null(), nil
 	}
 
 	if !in.Type().Equal(t.TerraformType(ctx)) {
@@ -984,11 +984,11 @@ func (t PublicNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in 
 	}
 
 	if !in.IsKnown() {
-		return NewPublicNetworkConfigValueV2Unknown(), nil
+		return NewPublicNetworkingValueV2Unknown(), nil
 	}
 
 	if in.IsNull() {
-		return NewPublicNetworkConfigValueV2Null(), nil
+		return NewPublicNetworkingValueV2Null(), nil
 	}
 
 	attributes := map[string]attr.Value{}
@@ -1011,16 +1011,16 @@ func (t PublicNetworkConfigTypeV2) ValueFromTerraformV2(ctx context.Context, in 
 		attributes[k] = a
 	}
 
-	return NewPublicNetworkConfigValueV2Must(PublicNetworkConfigValueV2{}.AttributeTypes(ctx), attributes), nil
+	return NewPublicNetworkingValueV2Must(PublicNetworkingValueV2{}.AttributeTypes(ctx), attributes), nil
 }
 
-func (t PublicNetworkConfigTypeV2) ValueType(ctx context.Context) attr.Value {
-	return PublicNetworkConfigValueV2{}
+func (t PublicNetworkingTypeV2) ValueType(ctx context.Context) attr.Value {
+	return PublicNetworkingValueV2{}
 }
 
-var _ basetypes.ObjectValuable = PublicNetworkConfigValueV2{}
+var _ basetypes.ObjectValuable = PublicNetworkingValueV2{}
 
-type PublicNetworkConfigValueV2 struct {
+type PublicNetworkingValueV2 struct {
 	Enabled      basetypes.BoolValue   `tfsdk:"enabled"`
 	AllowedCIDRs basetypes.ListValue   `tfsdk:"allowed_cidrs"`
 	Hostname     basetypes.StringValue `tfsdk:"hostname"`
@@ -1028,7 +1028,7 @@ type PublicNetworkConfigValueV2 struct {
 	state        attr.ValueState
 }
 
-func (v PublicNetworkConfigValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
+func (v PublicNetworkingValueV2) ToTerraformValue(ctx context.Context) (tftypes.Value, error) {
 	attrTypes := make(map[string]tftypes.Type, 2)
 
 	var val tftypes.Value
@@ -1089,19 +1089,19 @@ func (v PublicNetworkConfigValueV2) ToTerraformValue(ctx context.Context) (tftyp
 	}
 }
 
-func (v PublicNetworkConfigValueV2) IsNull() bool {
+func (v PublicNetworkingValueV2) IsNull() bool {
 	return v.state == attr.ValueStateNull
 }
 
-func (v PublicNetworkConfigValueV2) IsUnknown() bool {
+func (v PublicNetworkingValueV2) IsUnknown() bool {
 	return v.state == attr.ValueStateUnknown
 }
 
-func (v PublicNetworkConfigValueV2) String() string {
-	return "PublicNetworkConfigValueV2"
+func (v PublicNetworkingValueV2) String() string {
+	return "PublicNetworkingValueV2"
 }
 
-func (v PublicNetworkConfigValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
+func (v PublicNetworkingValueV2) ToObjectValue(ctx context.Context) (basetypes.ObjectValue, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	objVal, diags := types.ObjectValue(
@@ -1123,8 +1123,8 @@ func (v PublicNetworkConfigValueV2) ToObjectValue(ctx context.Context) (basetype
 	return objVal, diags
 }
 
-func (v PublicNetworkConfigValueV2) Equal(o attr.Value) bool {
-	other, ok := o.(PublicNetworkConfigValueV2)
+func (v PublicNetworkingValueV2) Equal(o attr.Value) bool {
+	other, ok := o.(PublicNetworkingValueV2)
 
 	if !ok {
 		return false
@@ -1157,15 +1157,15 @@ func (v PublicNetworkConfigValueV2) Equal(o attr.Value) bool {
 	return true
 }
 
-func (v PublicNetworkConfigValueV2) Type(ctx context.Context) attr.Type {
-	return PublicNetworkConfigTypeV2{
+func (v PublicNetworkingValueV2) Type(ctx context.Context) attr.Type {
+	return PublicNetworkingTypeV2{
 		basetypes.ObjectType{
 			AttrTypes: v.AttributeTypes(ctx),
 		},
 	}
 }
 
-func (v PublicNetworkConfigValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
+func (v PublicNetworkingValueV2) AttributeTypes(ctx context.Context) map[string]attr.Type {
 	return map[string]attr.Type{
 		"enabled":       basetypes.BoolType{},
 		"hostname":      basetypes.StringType{},
@@ -1174,7 +1174,7 @@ func (v PublicNetworkConfigValueV2) AttributeTypes(ctx context.Context) map[stri
 	}
 }
 
-func (v PublicNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkConfigResponseV2, diag.Diagnostics) {
+func (v PublicNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkingResponseV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -1183,7 +1183,7 @@ func (v PublicNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sy
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPublicNetworkConfigResponseV2{
+	return &sys11dbaassdk.PSQLPublicNetworkingResponseV2{
 		Enabled:      v.Enabled.ValueBool(),
 		Hostname:     v.Hostname.ValueString(),
 		IPAddress:    v.IPAddress.ValueString(),
@@ -1191,7 +1191,7 @@ func (v PublicNetworkConfigValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sy
 	}, diags
 }
 
-func (v PublicNetworkConfigValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkConfigRequestV2, diag.Diagnostics) {
+func (v PublicNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkingRequestV2, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -1200,7 +1200,7 @@ func (v PublicNetworkConfigValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPublicNetworkConfigRequestV2{
+	return &sys11dbaassdk.PSQLPublicNetworkingRequestV2{
 		Enabled:      v.Enabled.ValueBool(),
 		AllowedCIDRs: &ipList,
 	}, diags
