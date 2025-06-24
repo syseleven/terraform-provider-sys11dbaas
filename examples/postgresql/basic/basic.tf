@@ -48,3 +48,7 @@ output "db-v2-subnet" {
 output "db-v2-network" {
   value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.shared_network_id
 }
+
+output "db-v2-hostname" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.hostname
+}
