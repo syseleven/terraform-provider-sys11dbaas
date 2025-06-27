@@ -32,12 +32,12 @@ resource "sys11dbaas_database" "postgresql" {
   application_config = {
     instances = 1
     type      = "postgresql"
-    version   = 16.2
+    version   = 17.5
     password  = "veryS3cretPassword"
   }
   service_config = {
     disksize = 25
-    flavor   = "m2c.small"
+    flavor   = "SCS-2V-4-50n"
     region   = "dus2"
   }
 }
