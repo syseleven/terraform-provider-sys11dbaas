@@ -530,12 +530,19 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
+	var sharedSubnetCIDR types.String
+	if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
+		sharedSubnetCIDR = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+	} else {
+		sharedSubnetCIDR = types.StringNull()
+	}
+
 	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
 		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
 		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
 		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
 		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR),
+		SharedSubnetCIDR: sharedSubnetCIDR,
 		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
 		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
 	}.ToObjectValue(ctx)
@@ -629,12 +636,19 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
 	diags.Append(d...)
 
+	var sharedSubnetCIDRRead types.String
+	if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
+		sharedSubnetCIDRRead = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+	} else {
+		sharedSubnetCIDRRead = types.StringNull()
+	}
+
 	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
 		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
 		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
 		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
 		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR),
+		SharedSubnetCIDR: sharedSubnetCIDRRead,
 		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
 		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
 	}.ToObjectValue(ctx)
