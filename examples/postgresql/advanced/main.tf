@@ -16,7 +16,7 @@ resource "sys11dbaas_database_v2" "db" {
     private_networking   = {
       enabled            = var.private_networking
       shared_subnet_cidr = var.shared_subnet_cidr
-      allowed_cidrs      = var.db_remote_ips
+      allowed_cidrs      = var.allowed_cidrs
     }
 
     public_networking = {
