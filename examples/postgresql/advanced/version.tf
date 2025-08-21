@@ -3,7 +3,7 @@ terraform {
   required_providers {
     sys11dbaas = {
       source  = "registry.terraform.io/syseleven/sys11dbaas"
-      version = ">= 0.2.0"
+      version = ">= 0.3.0"
     }
   }
 }
