@@ -59,7 +59,7 @@ variable "db_disk_size" {
 
 variable "db_flavor" {
   type    = string
-  default = "m2c.small"
+  default = "SCS-2V-4-50n"
 }
 
 variable "db_instances" {
