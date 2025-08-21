@@ -21,7 +21,7 @@ resource "sys11dbaas_database_v2" "db" {
 
     public_networking = {
       enabled         = var.public_networking
-      allowed_cidrs   = var.db_remote_ips
+      allowed_cidrs   = var.allowed_cidrs
     }
 
     scheduled_backups = {
