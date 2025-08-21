@@ -27,7 +27,22 @@ resource "sys11dbaas_database" "postgresql" {
   }
 }
 
-output "db" {
-  value = [resource.sys11dbaas_database.postgresql.uuid, resource.sys11dbaas_database.postgresql.status]
+output "db-v2-uuid" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.uuid
 }
 
+output "db-v2-status" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.status
+}
+
+output "db-v2-subnet" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.shared_subnet_id
+}
+
+output "db-v2-network" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.shared_network_id
+}
+
+output "db-v2-hostname" {
+  value = resource.sys11dbaas_database_v2.postgresql-v2.application_config.private_networking.hostname
+}
