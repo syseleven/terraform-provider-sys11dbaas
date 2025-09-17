@@ -57,5 +57,5 @@ SYS11DBAAS_SDK_DEBUG=true TF_LOG_PROVIDER=DEBUG terraform apply
 ## Generate docs
 
 ```bash
-go generate
+make generate-docs
 ```
