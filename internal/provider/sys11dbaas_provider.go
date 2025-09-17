@@ -63,7 +63,7 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 			"api_key": schema.StringAttribute{
 				Required:    false,
 				Optional:    true,
-				Description: "API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.",
+				Description: "API key or service account token to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.",
 			},
 			"organization": schema.StringAttribute{
 				Required:    false,

@@ -28,7 +28,7 @@ provider "sys11dbaas" {
 
 ### Optional
 
-- `api_key` (String) API key to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.
+- `api_key` (String) API key or service account token to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.
 - `organization` (String) ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.
 - `project` (String) ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
 - `url` (String) URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de
