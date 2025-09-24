@@ -493,7 +493,6 @@ func (r *DatabaseResourceV2) Schema(ctx context.Context, _ resource.SchemaReques
 }
 
 func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePostgreSQLResponseV2, plan DatabaseModelV2, targetState *DatabaseModelV2) diag.Diagnostics {
-
 	var diags diag.Diagnostics
 
 	ctx = tflog.SetField(ctx, "conversion_create_source_response", db)
@@ -566,9 +565,15 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 
 	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
 
+	// Extract password consistently - use plan password for create response
+	planPassword := ""
+	if passwordAttr, exists := plan.ApplicationConfig.Attributes()["password"]; exists {
+		planPassword = strings.Trim(passwordAttr.String(), "\"")
+	}
+
 	var targetApplicationConfig ApplicationConfigValueV2
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
-	targetApplicationConfig.Password = types.StringValue(strings.Trim(plan.ApplicationConfig.Attributes()["password"].String(), "\"")) // take this from the plan, since it is not included in the response
+	targetApplicationConfig.Password = types.StringValue(planPassword) // take this from the plan, since it is not included in the response
 	targetApplicationConfig.Instances = types.Int64Value(int64(*db.ApplicationConfig.Instances))
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
 	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
@@ -672,7 +677,11 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 
 	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
 
-	previousPassword := strings.Trim(previousState.ApplicationConfig.Attributes()["password"].String(), "\"")
+	// Extract password consistently - use previous state password for read response
+	previousPassword := ""
+	if passwordAttr, exists := previousState.ApplicationConfig.Attributes()["password"]; exists {
+		previousPassword = strings.Trim(passwordAttr.String(), "\"")
+	}
 
 	var targetApplicationConfig ApplicationConfigValueV2
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)

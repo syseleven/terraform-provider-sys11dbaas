@@ -497,9 +497,19 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 
 	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
 
+	// Extract password from plan for state consistency
+	// The API response doesn't include the password for security reasons, but Terraform
+	// needs to store it in state to detect changes. We must use the planned password
+	// value to ensure the sensitive application_config object remains consistent
+	// between plan and apply phases, preventing "inconsistent values for sensitive attribute" errors.
+	planPassword := ""
+	if passwordAttr, exists := plan.ApplicationConfig.Attributes()["password"]; exists {
+		planPassword = strings.Trim(passwordAttr.String(), "\"")
+	}
+
 	var targetApplicationConfig ApplicationConfigValue
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
-	targetApplicationConfig.Password = types.StringValue(strings.Trim(plan.ApplicationConfig.Attributes()["password"].String(), "\"")) // take this from the plan, since it is not included in the response
+	targetApplicationConfig.Password = types.StringValue(planPassword) // take this from the plan, since it is not included in the response
 	targetApplicationConfig.Instances = types.Int64Value(int64(*db.ApplicationConfig.Instances))
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
 	targetApplicationConfig.Hostname = types.StringValue(db.ApplicationConfig.Hostname)
@@ -578,7 +588,14 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 
 	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
 
-	previousPassword := strings.Trim(previousState.ApplicationConfig.Attributes()["password"].String(), "\"")
+	// Extract password from previous state for consistency
+	// During read operations, the API doesn't return the password. We must preserve
+	// the password from the previous Terraform state to maintain consistency of the
+	// sensitive application_config object and prevent state drift or validation errors.
+	previousPassword := ""
+	if passwordAttr, exists := previousState.ApplicationConfig.Attributes()["password"]; exists {
+		previousPassword = strings.Trim(passwordAttr.String(), "\"")
+	}
 
 	var targetApplicationConfig ApplicationConfigValue
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
