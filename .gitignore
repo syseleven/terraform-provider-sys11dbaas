@@ -1,7 +1,10 @@
 terraform-provider-sys11dbaas
 
+*.tfvars
 *.tfstate
 *.tfstate.backup
 .terraform
 .terraform.lock.hcl
 .terraform.tfstate.lock.info
+
+ssh_private.key
