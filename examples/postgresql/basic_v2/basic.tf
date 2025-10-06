@@ -33,6 +33,10 @@ resource "sys11dbaas_database_v2" "postgresql" {
   }
 }
 
+output "db-hostname" {
+  value = resource.sys11dbaas_database_v2.db.application_config.private_networking.hostname
+}
+
 output "db-uuid" {
   value = resource.sys11dbaas_database_v2.postgresql.uuid
 }
@@ -41,10 +45,10 @@ output "db-status" {
   value = resource.sys11dbaas_database_v2.postgresql.status
 }
 
-output "db-subnet" {
+output "db-subnet-id" {
   value = resource.sys11dbaas_database_v2.postgresql.application_config.private_networking.shared_subnet_id
 }
 
-output "db-network" {
+output "db-network-id" {
   value = resource.sys11dbaas_database_v2.postgresql.application_config.private_networking.shared_network_id
 }
