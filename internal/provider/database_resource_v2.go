@@ -510,15 +510,20 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 		}.ToObjectValue(ctx)
 	}
 
-	scheduleObjVal, _ := ScheduleValueV2{
-		Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
-		Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
-	}.ToObjectValue(ctx)
+	var scheduledBackupsObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
+		scheduleObjVal, _ := ScheduleValueV2{
+			Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
+			Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
+		}.ToObjectValue(ctx)
 
-	scheduledBackupsObjVal, _ := ScheduledBackupsValueV2{
-		Schedule:  scheduleObjVal,
-		Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
-	}.ToObjectValue(ctx)
+		scheduledBackupsObjVal, _ = ScheduledBackupsValueV2{
+			Schedule:  scheduleObjVal,
+			Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
+		}.ToObjectValue(ctx)
+	} else {
+		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValueV2{}.AttributeTypes(ctx))
+	}
 
 	maintenanceWindowObjVal, _ := MaintenanceWindowValueV2{
 		DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
@@ -644,15 +649,20 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 		}.ToObjectValue(ctx)
 	}
 
-	scheduleObjVal, _ := ScheduleValueV2{
-		Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
-		Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
-	}.ToObjectValue(ctx)
+	var scheduledBackupsObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
+		scheduleObjVal, _ := ScheduleValueV2{
+			Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
+			Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
+		}.ToObjectValue(ctx)
 
-	scheduledBackupsObjVal, _ := ScheduledBackupsValueV2{
-		Schedule:  scheduleObjVal,
-		Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
-	}.ToObjectValue(ctx)
+		scheduledBackupsObjVal, _ = ScheduledBackupsValueV2{
+			Schedule:  scheduleObjVal,
+			Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
+		}.ToObjectValue(ctx)
+	} else {
+		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValueV2{}.AttributeTypes(ctx))
+	}
 
 	maintenanceWindowObjVal, _ := MaintenanceWindowValueV2{
 		DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),

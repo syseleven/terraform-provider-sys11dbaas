@@ -560,15 +560,20 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 		}.ToObjectValue(ctx)
 	}
 
-	scheduleObjVal, _ := ScheduleValue{
-		Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
-		Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
-	}.ToObjectValue(ctx)
+	var scheduledBackupsObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
+		scheduleObjVal, _ := ScheduleValue{
+			Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
+			Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
+		}.ToObjectValue(ctx)
 
-	scheduledBackupsObjVal, _ := ScheduledBackupsValue{
-		Schedule:  scheduleObjVal,
-		Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
-	}.ToObjectValue(ctx)
+		scheduledBackupsObjVal, _ = ScheduledBackupsValue{
+			Schedule:  scheduleObjVal,
+			Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
+		}.ToObjectValue(ctx)
+	} else {
+		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValue{}.AttributeTypes(ctx))
+	}
 
 	maintenanceWindowObjVal, _ := MaintenanceWindowValue{
 		DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
