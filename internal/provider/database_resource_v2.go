@@ -525,11 +525,16 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValueV2{}.AttributeTypes(ctx))
 	}
 
-	maintenanceWindowObjVal, _ := MaintenanceWindowValueV2{
-		DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
-		StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
-		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
-	}.ToObjectValue(ctx)
+	var maintenanceWindowObjVal basetypes.ObjectValue
+	if db.ServiceConfig.MaintenanceWindow != nil {
+		maintenanceWindowObjVal, _ = MaintenanceWindowValueV2{
+			DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
+			StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
+			StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
+		}.ToObjectValue(ctx)
+	} else {
+		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValueV2{}.AttributeTypes(ctx))
+	}
 
 	var privateNetworkingObjVal basetypes.ObjectValue
 	if db.ApplicationConfig.PrivateNetworking != nil {
@@ -664,11 +669,16 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValueV2{}.AttributeTypes(ctx))
 	}
 
-	maintenanceWindowObjVal, _ := MaintenanceWindowValueV2{
-		DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
-		StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
-		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
-	}.ToObjectValue(ctx)
+	var maintenanceWindowObjVal basetypes.ObjectValue
+	if db.ServiceConfig.MaintenanceWindow != nil {
+		maintenanceWindowObjVal, _ = MaintenanceWindowValueV2{
+			DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
+			StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
+			StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
+		}.ToObjectValue(ctx)
+	} else {
+		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValueV2{}.AttributeTypes(ctx))
+	}
 
 	var privateNetworkingObjVal basetypes.ObjectValue
 	if db.ApplicationConfig.PrivateNetworking != nil {
