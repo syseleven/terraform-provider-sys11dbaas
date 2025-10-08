@@ -526,35 +526,57 @@ func psqlCreateResponseToModelV2(ctx context.Context, db *sys11dbaassdk.CreatePo
 		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
 	}.ToObjectValue(ctx)
 
-	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
-	diags.Append(d...)
+	var privateNetworkingObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.PrivateNetworking != nil {
+		var privateAllowedCIDRs types.List
+		if db.ApplicationConfig.PrivateNetworking.AllowedCIDRs != nil {
+			var d diag.Diagnostics
+			privateAllowedCIDRs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PrivateNetworking.AllowedCIDRs)
+			diags.Append(d...)
+		} else {
+			privateAllowedCIDRs = types.ListNull(types.StringType)
+		}
 
-	var sharedSubnetCIDR types.String
-	if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
-		sharedSubnetCIDR = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+		var sharedSubnetCIDR types.String
+		if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
+			sharedSubnetCIDR = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+		} else {
+			sharedSubnetCIDR = types.StringNull()
+		}
+
+		privateNetworkingObjVal, _ = PrivateNetworkingValueV2{
+			Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
+			Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
+			IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
+			AllowedCIDRs:     privateAllowedCIDRs,
+			SharedSubnetCIDR: sharedSubnetCIDR,
+			SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
+			SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
+		}.ToObjectValue(ctx)
 	} else {
-		sharedSubnetCIDR = types.StringNull()
+		privateNetworkingObjVal = types.ObjectNull(PrivateNetworkingValueV2{}.AttributeTypes(ctx))
 	}
 
-	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
-		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
-		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
-		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
-		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: sharedSubnetCIDR,
-		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
-		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
-	}.ToObjectValue(ctx)
+	var publicNetworkingObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.PublicNetworking != nil {
+		var publicAllowedCIDRs types.List
+		if db.ApplicationConfig.PublicNetworking.AllowedCIDRs != nil {
+			var d diag.Diagnostics
+			publicAllowedCIDRs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PublicNetworking.AllowedCIDRs)
+			diags.Append(d...)
+		} else {
+			publicAllowedCIDRs = types.ListNull(types.StringType)
+		}
 
-	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworking.AllowedCIDRs)
-	diags.Append(d...)
-
-	publicNetworkingObjVal, _ := PublicNetworkingValueV2{
-		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
-		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
-		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
-		AllowedCIDRs: publicAllowedCIRDs,
-	}.ToObjectValue(ctx)
+		publicNetworkingObjVal, _ = PublicNetworkingValueV2{
+			Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
+			Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
+			IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
+			AllowedCIDRs: publicAllowedCIDRs,
+		}.ToObjectValue(ctx)
+	} else {
+		publicNetworkingObjVal = types.ObjectNull(PublicNetworkingValueV2{}.AttributeTypes(ctx))
+	}
 
 	var targetServiceConfig ServiceConfigValueV2
 	targetServiceConfig.Disksize = types.Int64Value(int64(*db.ServiceConfig.Disksize))
@@ -638,35 +660,57 @@ func psqlGetResponseToModelV2(ctx context.Context, db *sys11dbaassdk.GetPostgreS
 		StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
 	}.ToObjectValue(ctx)
 
-	privateAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PrivateNetworking.AllowedCIDRs)
-	diags.Append(d...)
+	var privateNetworkingObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.PrivateNetworking != nil {
+		var privateAllowedCIDRs types.List
+		if db.ApplicationConfig.PrivateNetworking.AllowedCIDRs != nil {
+			var d diag.Diagnostics
+			privateAllowedCIDRs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PrivateNetworking.AllowedCIDRs)
+			diags.Append(d...)
+		} else {
+			privateAllowedCIDRs = types.ListNull(types.StringType)
+		}
 
-	var sharedSubnetCIDRRead types.String
-	if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
-		sharedSubnetCIDRRead = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+		var sharedSubnetCIDRRead types.String
+		if db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR != nil {
+			sharedSubnetCIDRRead = types.StringValue(*db.ApplicationConfig.PrivateNetworking.SharedSubnetCIDR)
+		} else {
+			sharedSubnetCIDRRead = types.StringNull()
+		}
+
+		privateNetworkingObjVal, _ = PrivateNetworkingValueV2{
+			Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
+			Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
+			IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
+			AllowedCIDRs:     privateAllowedCIDRs,
+			SharedSubnetCIDR: sharedSubnetCIDRRead,
+			SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
+			SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
+		}.ToObjectValue(ctx)
 	} else {
-		sharedSubnetCIDRRead = types.StringNull()
+		privateNetworkingObjVal = types.ObjectNull(PrivateNetworkingValueV2{}.AttributeTypes(ctx))
 	}
 
-	privateNetworkingObjVal, _ := PrivateNetworkingValueV2{
-		Enabled:          types.BoolValue(db.ApplicationConfig.PrivateNetworking.Enabled),
-		Hostname:         types.StringValue(db.ApplicationConfig.PrivateNetworking.Hostname),
-		IPAddress:        types.StringValue(db.ApplicationConfig.PrivateNetworking.IPAddress),
-		AllowedCIDRs:     privateAllowedCIRDs,
-		SharedSubnetCIDR: sharedSubnetCIDRRead,
-		SharedSubnetID:   types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetID),
-		SharedNetworkID:  types.StringValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkID),
-	}.ToObjectValue(ctx)
+	var publicNetworkingObjVal basetypes.ObjectValue
+	if db.ApplicationConfig.PublicNetworking != nil {
+		var publicAllowedCIDRs types.List
+		if db.ApplicationConfig.PublicNetworking.AllowedCIDRs != nil {
+			var d diag.Diagnostics
+			publicAllowedCIDRs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PublicNetworking.AllowedCIDRs)
+			diags.Append(d...)
+		} else {
+			publicAllowedCIDRs = types.ListNull(types.StringType)
+		}
 
-	publicAllowedCIRDs, d := types.ListValueFrom(ctx, types.StringType, (*db).ApplicationConfig.PublicNetworking.AllowedCIDRs)
-	diags.Append(d...)
-
-	publicNetworkingObjVal, _ := PublicNetworkingValueV2{
-		Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
-		Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
-		IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
-		AllowedCIDRs: publicAllowedCIRDs,
-	}.ToObjectValue(ctx)
+		publicNetworkingObjVal, _ = PublicNetworkingValueV2{
+			Enabled:      types.BoolValue(db.ApplicationConfig.PublicNetworking.Enabled),
+			Hostname:     types.StringValue(db.ApplicationConfig.PublicNetworking.Hostname),
+			IPAddress:    types.StringValue(db.ApplicationConfig.PublicNetworking.IPAddress),
+			AllowedCIDRs: publicAllowedCIDRs,
+		}.ToObjectValue(ctx)
+	} else {
+		publicNetworkingObjVal = types.ObjectNull(PublicNetworkingValueV2{}.AttributeTypes(ctx))
+	}
 
 	var targetServiceConfig ServiceConfigValueV2
 	targetServiceConfig.Disksize = types.Int64Value(int64(*db.ServiceConfig.Disksize))
