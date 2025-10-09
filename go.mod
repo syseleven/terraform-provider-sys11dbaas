@@ -2,7 +2,7 @@ module terraform-provider-sys11dbaas
 
 go 1.23.0
 
-toolchain go1.24.3
+toolchain go1.25.2
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.15.0
