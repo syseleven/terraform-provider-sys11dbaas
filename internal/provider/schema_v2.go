@@ -156,12 +156,18 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 								Computed:            true,
 								Description:         "Schedules for the backup policy.",
 								MarkdownDescription: "Schedules for the backup policy.",
+								PlanModifiers: []planmodifier.Object{
+									objectplanmodifier.UseStateForUnknown(),
+								},
 							},
 						},
 						Optional:            true,
 						Computed:            true,
 						Description:         "Scheduled backups policy for the database.",
 						MarkdownDescription: "Scheduled backups policy for the database.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"type": schema.StringAttribute{
 						Required:            true,
@@ -325,11 +331,17 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Date when the database was last modified.",
 				MarkdownDescription: "Date when the database was last modified.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"last_modified_by": schema.StringAttribute{
 				Computed:            true,
 				Description:         "User who last changed the database.",
 				MarkdownDescription: "User who last changed the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:            true,
@@ -411,16 +423,25 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 				Computed:            true,
 				Description:         "Overall status of the database.",
 				MarkdownDescription: "Overall status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"phase": schema.StringAttribute{
 				Computed:            true,
 				Description:         "Detailed status of the database.",
 				MarkdownDescription: "Detailed status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"resource_status": schema.StringAttribute{
 				Computed:            true,
 				Description:         "Sync status of the database.",
 				MarkdownDescription: "Sync status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"uuid": schema.StringAttribute{
 				Computed:            true,
