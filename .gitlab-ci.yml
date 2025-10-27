@@ -37,7 +37,7 @@ terraform-validate:
     - .terraform-validate
 
 tfplugindocs:
-  image: golang:1.23.7
+  image: golang:1.25.3
   script:
-    - make generate-docs
+    - go tool github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
     - if [[ ! -z "$(git status -s)" ]]; then echo "Found documentation files. Please run tfplugindocs locally and commit changes." && git diff && exit 1; fi
