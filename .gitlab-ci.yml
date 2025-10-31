@@ -1,12 +1,12 @@
 include:
   - project: syseleven/gitlab-ci-templates
-    ref: 3.29.3
+    ref: 3.38.0
     file: job-templates/TerraformValidate.yml
   - project: syseleven/gitlab-ci-templates
-    ref: 3.29.3
+    ref: 3.38.0
     file: job-templates/TerraformFormat.yml
   - project: syseleven/gitlab-ci-templates
-    ref: 3.29.3
+    ref: 3.38.0
     file: MarkdownLint.yml
 
 stages:
