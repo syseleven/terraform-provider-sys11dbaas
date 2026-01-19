@@ -9,7 +9,7 @@ require (
 	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
 	github.com/hashicorp/terraform-plugin-go v0.28.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
-	github.com/syseleven/sys11dbaas-sdk v0.0.0-20250610095803-38ba017484ca
+	github.com/syseleven/sys11dbaas-sdk v0.0.0-20251009071335-472d6b2d2b2b
 )
 
 require (
