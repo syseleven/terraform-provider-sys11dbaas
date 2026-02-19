@@ -6,7 +6,7 @@ toolchain go1.25.6
 
 require (
 	github.com/hashicorp/terraform-plugin-framework v1.17.0
-	github.com/hashicorp/terraform-plugin-framework-validators v0.18.0
+	github.com/hashicorp/terraform-plugin-framework-validators v0.19.0
 	github.com/hashicorp/terraform-plugin-go v0.29.0
 	github.com/hashicorp/terraform-plugin-log v0.10.0
 	github.com/syseleven/sys11dbaas-sdk v0.0.0-20251009071335-472d6b2d2b2b
