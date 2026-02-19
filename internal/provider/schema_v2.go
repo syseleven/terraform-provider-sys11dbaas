@@ -362,7 +362,7 @@ func DatabaseResourceV2Schema(ctx context.Context) schema.Schema {
 						},
 						Optional:    true,
 						Computed:    true,
-						Description: "Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated.",
+						Description: "Maintenance window in UTC. This will be a time window for updates and maintenance. If omitted, a random window will be generated.",
 						PlanModifiers: []planmodifier.Object{
 							objectplanmodifier.UseStateForUnknown(),
 						},

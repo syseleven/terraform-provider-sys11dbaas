@@ -184,7 +184,7 @@ Required:
 
 Optional:
 
-- `maintenance_window` (Attributes) Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
+- `maintenance_window` (Attributes) Maintenance window in UTC. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
 - `type` (String) Type of the service you want to create (default `database`)
 
 <a id="nestedatt--service_config--maintenance_window"></a>
