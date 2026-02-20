@@ -12,7 +12,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
+	apiv1 "github.com/syseleven/sys11dbaas-sdk/apiv1"
 )
 
 const CREATE_RETRY_LIMIT = 30 * time.Minute
@@ -35,7 +35,7 @@ type DatabaseModel struct {
 // resource
 
 type DatabaseResource struct {
-	client          *sys11dbaassdk.Client
+	client          *apiv1.TypedClient
 	project         types.String
 	organization    types.String
 	waitForCreation types.Bool
@@ -66,7 +66,7 @@ func (r *DatabaseResource) Configure(_ context.Context, req resource.ConfigureRe
 		return
 	}
 
-	r.client = providerData.client
+	r.client = providerData.client.V1()
 	r.organization = providerData.organization
 	r.project = providerData.project
 	r.waitForCreation = providerData.waitForCreation
@@ -82,17 +82,11 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	psqlRequest := &sys11dbaassdk.GetPostgreSQLRequestV1{
-		UUID:         state.Uuid.ValueString(),
-		Organization: r.organization.ValueString(),
-		Project:      r.project.ValueString(),
-	}
-
-	var psqlDB *sys11dbaassdk.GetPostgreSQLResponseV1
+	var psqlDB apiv1.PostgreSQLGetResponseV1
 	var err error
 	errCount := 0
 	for {
-		psqlDB, err = r.client.GetPostgreSQLDBV1(psqlRequest)
+		psqlDB, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
 		if err != nil {
 			errCount++
 			if errCount >= 3 {
@@ -148,7 +142,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	var maintenanceWindow *sys11dbaassdk.MaintenanceWindowV1
+	var maintenanceWindow *apiv1.PostgreSQLMaintenance
 	if !serviceConfig.MaintenanceWindow.IsUnknown() {
 		maintenanceWindowObj, diags := NewMaintenanceWindowValue(serviceConfig.MaintenanceWindow.AttributeTypes(ctx), serviceConfig.MaintenanceWindow.Attributes())
 		resp.Diagnostics.Append(diags...)
@@ -168,7 +162,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var backupSchedule *sys11dbaassdk.PSQLScheduledBackupsV1
+	var backupSchedule *apiv1.PostgreSQLBackupSchedule
 	if !applicationConfig.ScheduledBackups.IsUnknown() {
 		scheduledBackupsObj, diags := NewScheduledBackupsValue(applicationConfig.ScheduledBackups.AttributeTypes(ctx), applicationConfig.ScheduledBackups.Attributes())
 		resp.Diagnostics.Append(diags...)
@@ -182,23 +176,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		}
 	}
 
-	createRequest := &sys11dbaassdk.CreatePostgreSQLRequestV1{
-		Organization: r.organization.ValueString(),
-		Project:      r.project.ValueString(),
-		Name:         plan.Name.ValueString(),
-		Description:  plan.Description.ValueString(),
-		ServiceConfig: &sys11dbaassdk.PSQLServiceConfigRequestV1{
-			Disksize:          sys11dbaassdk.Int64ToIntPtr(serviceConfig.Disksize.ValueInt64()),
+	createRequest := apiv1.PostgreSQLCreateRequestV1{
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueStringPointer(),
+		ServiceConfig: apiv1.PostgreSQLServiceConfigV1{
+			Disksize:          serviceConfig.Disksize.ValueInt64Pointer(),
 			Type:              serviceConfig.ServiceConfigType.ValueString(),
 			Flavor:            serviceConfig.Flavor.ValueString(),
 			Region:            serviceConfig.Region.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIPs:         ipList,
+			RemoteIps:         &ipList,
 		},
-		ApplicationConfig: &sys11dbaassdk.PSQLApplicationConfigRequestV1{
+		ApplicationConfig: apiv1.PostgreSQLApplicationConfigV1{
 			Type:             applicationConfig.ApplicationConfigType.ValueString(),
 			Password:         applicationConfig.Password.ValueString(),
-			Instances:        sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
+			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
 			Version:          applicationConfig.Version.ValueString(),
 			ScheduledBackups: backupSchedule,
 		},
@@ -208,7 +200,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	tflog.Debug(ctx, string(d), nil)
 
 	// Create new db
-	createResponse, err := r.client.CreatePostgreSQLDBV1(createRequest)
+	createResponse, err := r.client.CreatePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error creating database",
@@ -227,14 +219,14 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 
 	tflog.Debug(ctx, "[CREATE] Wait for creation: "+r.waitForCreation.String(), nil)
 	if r.waitForCreation.ValueBool() {
-		getRequest := &sys11dbaassdk.GetPostgreSQLRequestV1{
-			Organization: r.organization.ValueString(),
-			Project:      r.project.ValueString(),
-			UUID:         createResponse.UUID,
-		}
+		// getRequest := &apiv1.GetPostgreSQLRequestV1{
+		// 	Organization: r.organization.ValueString(),
+		// 	Project:      r.project.ValueString(),
+		// 	UUID:         createResponse.UUID,
+		// }
 		sleepFor := time.Duration(30 * time.Second)
 		errCount := 0
-		for retryCount := 0; targetState.Status.ValueString() != sys11dbaassdk.STATE_READY; {
+		for retryCount := 0; targetState.Status.ValueString() != apiv1.StateReady; {
 			if retryCount == int((CREATE_RETRY_LIMIT / sleepFor).Abs()) {
 				diags = resp.State.Set(ctx, &targetState)
 				resp.Diagnostics.Append(diags...)
@@ -242,7 +234,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 				return
 			}
 			time.Sleep(sleepFor)
-			getResponse, err := r.client.GetPostgreSQLDBV1(getRequest)
+			getResponse, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
 			if err != nil {
 				errCount++
 				if errCount >= 3 {
@@ -283,13 +275,7 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 		return
 	}
 
-	psqlRequest := &sys11dbaassdk.DeletePostgreSQLRequestV1{
-		UUID:         state.Uuid.ValueString(),
-		Organization: r.organization.ValueString(),
-		Project:      r.project.ValueString(),
-	}
-
-	_, err := r.client.DeletePostgreSQLDBV1(psqlRequest)
+	_, err := r.client.DeletePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), r.project.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Delete Database",
@@ -331,7 +317,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	var maintenanceWindow *sys11dbaassdk.MaintenanceWindowV1
+	var maintenanceWindow *apiv1.PostgreSQLMaintenance
 	if !serviceConfig.MaintenanceWindow.IsUnknown() {
 		maintenanceWindowObj, diags := NewMaintenanceWindowValue(serviceConfig.MaintenanceWindow.AttributeTypes(ctx), serviceConfig.MaintenanceWindow.Attributes())
 		resp.Diagnostics.Append(diags...)
@@ -351,7 +337,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var backupSchedule *sys11dbaassdk.PSQLScheduledBackupsV1
+	var backupSchedule *apiv1.PostgreSQLBackupSchedule
 	if !applicationConfig.ScheduledBackups.IsUnknown() {
 		scheduledBackupsObj, diags := NewScheduledBackupsValue(applicationConfig.ScheduledBackups.AttributeTypes(ctx), applicationConfig.ScheduledBackups.Attributes())
 		resp.Diagnostics.Append(diags...)
@@ -365,22 +351,19 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
-	updateRequest := &sys11dbaassdk.UpdatePostgreSQLRequestV1{
-		UUID:         state.Uuid.ValueString(),
-		Organization: r.organization.ValueString(),
-		Project:      r.project.ValueString(),
-		Name:         plan.Name.ValueString(),
-		Description:  plan.Description.ValueString(),
-		ServiceConfig: &sys11dbaassdk.PSQLServiceConfigUpdateRequestV1{
-			Disksize:          sys11dbaassdk.Int64ToIntPtr(serviceConfig.Disksize.ValueInt64()),
+	updateRequest := apiv1.PostgreSQLUpdateRequestV1{
+		Name:        plan.Name.ValueString(),
+		Description: plan.Description.ValueStringPointer(),
+		ServiceConfig: apiv1.PostgreSQLServiceConfigV1{
+			Disksize:          serviceConfig.Disksize.ValueInt64Pointer(),
 			Type:              serviceConfig.ServiceConfigType.ValueString(),
 			Flavor:            serviceConfig.Flavor.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIPs:         ipList,
+			RemoteIps:         &ipList,
 		},
-		ApplicationConfig: &sys11dbaassdk.PSQLApplicationConfigUpdateRequestV1{
+		ApplicationConfig: apiv1.PostgreSQLApplicationConfigV1{
 			Password:         applicationConfig.Password.ValueString(),
-			Instances:        sys11dbaassdk.IntPtr(int(applicationConfig.Instances.ValueInt64())),
+			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
 			Version:          applicationConfig.Version.ValueString(),
 			ScheduledBackups: backupSchedule,
 		},
@@ -390,7 +373,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	tflog.Debug(ctx, string(d), nil)
 
 	// Update psql
-	_, err := r.client.UpdatePostgreSQLDBV1(updateRequest)
+	_, err := r.client.UpdatePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString(), updateRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
@@ -406,12 +389,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		tflog.Debug(ctx, "wait 2 seconds to give DBaaS time to propagate", nil)
 
 		// Update psql
-		getRequest := &sys11dbaassdk.GetPostgreSQLRequestV1{
-			Organization: r.organization.ValueString(),
-			Project:      r.project.ValueString(),
-			UUID:         state.Uuid.ValueString(),
-		}
-		getResponse, err := r.client.GetPostgreSQLDBV1(getRequest)
+		getResponse, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
 		if err != nil {
 			errCount++
 			if errCount >= 3 {
@@ -448,23 +426,23 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 	resp.Schema = DatabaseResourceSchema(ctx)
 }
 
-func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePostgreSQLResponseV1, plan DatabaseModel, targetState *DatabaseModel) diag.Diagnostics {
+func psqlCreateResponseToModel(ctx context.Context, db apiv1.PostgreSQLGetResponseV1, plan DatabaseModel, targetState *DatabaseModel) diag.Diagnostics {
 
 	var diags diag.Diagnostics
 
 	ctx = tflog.SetField(ctx, "conversion_create_source_response", db)
 	tflog.Debug(ctx, "Converting create api response")
 
-	ipList, d := types.ListValueFrom(ctx, types.StringType, (*db).ServiceConfig.RemoteIPs)
+	ipList, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
 
 	var recoveryObjValue basetypes.ObjectValue
 	if db.ApplicationConfig.Recovery != nil {
 		recoveryObjValue, _ = RecoveryValue{
-			Exclusive:  types.BoolValue(db.ApplicationConfig.Recovery.Exclusive),
-			Source:     types.StringValue(db.ApplicationConfig.Recovery.Source),
-			TargetLsn:  types.StringValue(db.ApplicationConfig.Recovery.TargetLSN),
-			TargetName: types.StringValue(db.ApplicationConfig.Recovery.TargetName),
-			TargetXid:  types.StringValue(db.ApplicationConfig.Recovery.TargetXID),
+			Exclusive:  types.BoolPointerValue(db.ApplicationConfig.Recovery.Exclusive),
+			Source:     types.StringPointerValue(db.ApplicationConfig.Recovery.Source),
+			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
+			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
+			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
 			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
 		}.ToObjectValue(ctx)
 	}
@@ -472,13 +450,13 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 	var scheduledBackupsObjVal basetypes.ObjectValue
 	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
 		scheduleObjVal, _ := ScheduleValue{
-			Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
-			Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
+			Hour:   types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Hour),
+			Minute: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Minute),
 		}.ToObjectValue(ctx)
 
 		scheduledBackupsObjVal, _ = ScheduledBackupsValue{
 			Schedule:  scheduleObjVal,
-			Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
+			Retention: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Retention),
 		}.ToObjectValue(ctx)
 	} else {
 		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValue{}.AttributeTypes(ctx))
@@ -487,9 +465,9 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 	var maintenanceWindowObjVal basetypes.ObjectValue
 	if db.ServiceConfig.MaintenanceWindow != nil {
 		maintenanceWindowObjVal, _ = MaintenanceWindowValue{
-			DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
-			StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
-			StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
+			DayOfWeek:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.DayOfWeek),
+			StartHour:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartHour),
+			StartMinute: types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartMinute),
 		}.ToObjectValue(ctx)
 	} else {
 		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValue{}.AttributeTypes(ctx))
@@ -498,7 +476,7 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 	diags.Append(d...)
 
 	var targetServiceConfig ServiceConfigValue
-	targetServiceConfig.Disksize = types.Int64Value(int64(*db.ServiceConfig.Disksize))
+	targetServiceConfig.Disksize = types.Int64PointerValue(db.ServiceConfig.Disksize)
 	targetServiceConfig.ServiceConfigType = types.StringValue(db.ServiceConfig.Type)
 	targetServiceConfig.Flavor = types.StringValue(db.ServiceConfig.Flavor)
 	targetServiceConfig.Region = types.StringValue(db.ServiceConfig.Region)
@@ -520,25 +498,25 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 	var targetApplicationConfig ApplicationConfigValue
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
 	targetApplicationConfig.Password = types.StringValue(planPassword) // take this from the plan, since it is not included in the response
-	targetApplicationConfig.Instances = types.Int64Value(int64(*db.ApplicationConfig.Instances))
+	targetApplicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
-	targetApplicationConfig.Hostname = types.StringValue(db.ApplicationConfig.Hostname)
-	targetApplicationConfig.IpAddress = types.StringValue(db.ApplicationConfig.IPAddress)
+	targetApplicationConfig.Hostname = types.StringPointerValue(db.ApplicationConfig.Hostname)
+	targetApplicationConfig.IpAddress = types.StringPointerValue(db.ApplicationConfig.IpAddress)
 	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
 	targetApplicationConfig.Recovery = recoveryObjValue
 
 	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
 
-	targetState.Uuid = types.StringValue(db.UUID)
+	targetState.Uuid = types.StringValue(db.Uuid)
 	targetState.Name = types.StringValue(db.Name)
 	targetState.Description = types.StringValue(db.Description)
 	targetState.Status = types.StringValue(db.Status)
 	targetState.Phase = types.StringValue(db.Phase)
 	targetState.ResourceStatus = types.StringValue(db.ResourceStatus)
 	targetState.CreatedBy = types.StringValue(db.CreatedBy)
-	targetState.CreatedAt = types.StringValue(db.CreatedAt)
+	targetState.CreatedAt = types.StringValue(db.CreatedAt.Format(time.RFC3339))
 	targetState.LastModifiedBy = types.StringValue(db.LastModifiedBy)
-	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt)
+	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt.Format(time.RFC3339))
 	targetState.ApplicationConfig = targetApplicationConfigObj
 	targetState.ServiceConfig = targetServiceConfigObj
 
@@ -549,23 +527,23 @@ func psqlCreateResponseToModel(ctx context.Context, db *sys11dbaassdk.CreatePost
 
 }
 
-func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQLResponseV1, targetState *DatabaseModel, previousState DatabaseModel) diag.Diagnostics {
+func psqlGetResponseToModel(ctx context.Context, db apiv1.PostgreSQLGetResponseV1, targetState *DatabaseModel, previousState DatabaseModel) diag.Diagnostics {
 
 	var diags diag.Diagnostics
 
 	ctx = tflog.SetField(ctx, "conversion_read_source_response", db)
 	tflog.Debug(ctx, "Converting read api response")
 
-	ipList, d := types.ListValueFrom(ctx, types.StringType, (*db).ServiceConfig.RemoteIPs)
+	ipList, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
 
 	var recoveryObjValue basetypes.ObjectValue
 	if db.ApplicationConfig.Recovery != nil {
 		recoveryObjValue, _ = RecoveryValue{
-			Exclusive:  types.BoolValue(db.ApplicationConfig.Recovery.Exclusive),
-			Source:     types.StringValue(db.ApplicationConfig.Recovery.Source),
-			TargetLsn:  types.StringValue(db.ApplicationConfig.Recovery.TargetLSN),
-			TargetName: types.StringValue(db.ApplicationConfig.Recovery.TargetName),
-			TargetXid:  types.StringValue(db.ApplicationConfig.Recovery.TargetXID),
+			Exclusive:  types.BoolPointerValue(db.ApplicationConfig.Recovery.Exclusive),
+			Source:     types.StringPointerValue(db.ApplicationConfig.Recovery.Source),
+			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
+			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
+			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
 			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
 		}.ToObjectValue(ctx)
 	}
@@ -573,13 +551,13 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 	var scheduledBackupsObjVal basetypes.ObjectValue
 	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
 		scheduleObjVal, _ := ScheduleValue{
-			Hour:   types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Hour)),
-			Minute: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Schedule.Minute)),
+			Hour:   types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Hour),
+			Minute: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Minute),
 		}.ToObjectValue(ctx)
 
 		scheduledBackupsObjVal, _ = ScheduledBackupsValue{
 			Schedule:  scheduleObjVal,
-			Retention: types.Int64Value(int64(*db.ApplicationConfig.ScheduledBackups.Retention)),
+			Retention: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Retention),
 		}.ToObjectValue(ctx)
 	} else {
 		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValue{}.AttributeTypes(ctx))
@@ -588,9 +566,9 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 	var maintenanceWindowObjVal basetypes.ObjectValue
 	if db.ServiceConfig.MaintenanceWindow != nil {
 		maintenanceWindowObjVal, _ = MaintenanceWindowValue{
-			DayOfWeek:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.DayOfWeek)),
-			StartHour:   types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartHour)),
-			StartMinute: types.Int64Value(int64(*db.ServiceConfig.MaintenanceWindow.StartMinute)),
+			DayOfWeek:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.DayOfWeek),
+			StartHour:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartHour),
+			StartMinute: types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartMinute),
 		}.ToObjectValue(ctx)
 	} else {
 		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValue{}.AttributeTypes(ctx))
@@ -599,7 +577,7 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 	diags.Append(d...)
 
 	var targetServiceConfig ServiceConfigValue
-	targetServiceConfig.Disksize = types.Int64Value(int64(*db.ServiceConfig.Disksize))
+	targetServiceConfig.Disksize = types.Int64PointerValue(db.ServiceConfig.Disksize)
 	targetServiceConfig.ServiceConfigType = types.StringValue(db.ServiceConfig.Type)
 	targetServiceConfig.Flavor = types.StringValue(db.ServiceConfig.Flavor)
 	targetServiceConfig.Region = types.StringValue(db.ServiceConfig.Region)
@@ -620,25 +598,25 @@ func psqlGetResponseToModel(ctx context.Context, db *sys11dbaassdk.GetPostgreSQL
 	var targetApplicationConfig ApplicationConfigValue
 	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
 	targetApplicationConfig.Password = types.StringValue(previousPassword)
-	targetApplicationConfig.Instances = types.Int64Value(int64(*db.ApplicationConfig.Instances))
+	targetApplicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
 	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
-	targetApplicationConfig.Hostname = types.StringValue(db.ApplicationConfig.Hostname)
-	targetApplicationConfig.IpAddress = types.StringValue(db.ApplicationConfig.IPAddress)
+	targetApplicationConfig.Hostname = types.StringPointerValue(db.ApplicationConfig.Hostname)
+	targetApplicationConfig.IpAddress = types.StringPointerValue(db.ApplicationConfig.IpAddress)
 	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
 	targetApplicationConfig.Recovery = recoveryObjValue
 
 	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
 
-	targetState.Uuid = types.StringValue(db.UUID)
+	targetState.Uuid = types.StringValue(db.Uuid)
 	targetState.Name = types.StringValue(db.Name)
 	targetState.Description = types.StringValue(db.Description)
 	targetState.Status = types.StringValue(db.Status)
 	targetState.Phase = types.StringValue(db.Phase)
 	targetState.ResourceStatus = types.StringValue(db.ResourceStatus)
 	targetState.CreatedBy = types.StringValue(db.CreatedBy)
-	targetState.CreatedAt = types.StringValue(db.CreatedAt)
+	targetState.CreatedAt = types.StringValue(db.CreatedAt.Format(time.RFC3339))
 	targetState.LastModifiedBy = types.StringValue(db.LastModifiedBy)
-	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt)
+	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt.Format(time.RFC3339))
 	targetState.ApplicationConfig = targetApplicationConfigObj
 	targetState.ServiceConfig = targetServiceConfigObj
 

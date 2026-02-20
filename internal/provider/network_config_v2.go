@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
+	apiv2 "github.com/syseleven/sys11dbaas-sdk/apiv2"
 )
 
 var _ basetypes.ObjectTypable = PrivateNetworkingTypeV2{}
@@ -657,7 +657,7 @@ func (v PrivateNetworkingValueV2) AttributeTypes(ctx context.Context) map[string
 	}
 }
 
-func (v PrivateNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkingResponseV2, diag.Diagnostics) {
+func (v PrivateNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*apiv2.PostgreSQLPrivateNetworking, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -666,18 +666,18 @@ func (v PrivateNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys1
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPrivateNetworkingResponseV2{
-		Enabled:          v.Enabled.ValueBool(),
-		Hostname:         v.Hostname.ValueString(),
-		IPAddress:        v.IPAddress.ValueString(),
-		AllowedCIDRs:     &ipList,
-		SharedSubnetCIDR: v.SharedSubnetCIDR.ValueStringPointer(),
-		SharedSubnetID:   v.SharedSubnetCIDR.ValueString(),
-		SharedNetworkID:  v.SharedNetworkID.ValueString(),
+	return &apiv2.PostgreSQLPrivateNetworking{
+		Enabled:          v.Enabled.ValueBoolPointer(),
+		Hostname:         v.Hostname.ValueStringPointer(),
+		IpAddress:        v.IPAddress.ValueStringPointer(),
+		AllowedCidrs:     &ipList,
+		SharedSubnetCidr: v.SharedSubnetCIDR.ValueStringPointer(),
+		SharedSubnetId:   v.SharedSubnetCIDR.ValueStringPointer(),
+		SharedNetworkId:  v.SharedNetworkID.ValueStringPointer(),
 	}, diags
 }
 
-func (v PrivateNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPrivateNetworkingRequestV2, diag.Diagnostics) {
+func (v PrivateNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*apiv2.PostgreSQLPrivateNetworking, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
@@ -686,10 +686,10 @@ func (v PrivateNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPrivateNetworkingRequestV2{
-		Enabled:          v.Enabled.ValueBool(),
-		AllowedCIDRs:     &ipList,
-		SharedSubnetCIDR: v.SharedSubnetCIDR.ValueStringPointer(),
+	return &apiv2.PostgreSQLPrivateNetworking{
+		Enabled:          v.Enabled.ValueBoolPointer(),
+		AllowedCidrs:     &ipList,
+		SharedSubnetCidr: v.SharedSubnetCIDR.ValueStringPointer(),
 	}, diags
 }
 
@@ -800,7 +800,7 @@ func (t PublicNetworkingTypeV2) ValueFromObject(ctx context.Context, in basetype
 		Enabled:      enabledVal,
 		Hostname:     hostnameVal,
 		IPAddress:    ipAddressVal,
-		AllowedCIDRs: allowedCIDRsVal,
+		AllowedCidrs: allowedCIDRsVal,
 		state:        attr.ValueStateKnown,
 	}, diags
 }
@@ -946,7 +946,7 @@ func NewPublicNetworkingValueV2(attributeTypes map[string]attr.Type, attributes 
 
 	return PublicNetworkingValueV2{
 		Enabled:      enabledVal,
-		AllowedCIDRs: allowedCIDRsVal,
+		AllowedCidrs: allowedCIDRsVal,
 		Hostname:     hostnameVal,
 		IPAddress:    ipAddressVal,
 		state:        attr.ValueStateKnown,
@@ -1022,7 +1022,7 @@ var _ basetypes.ObjectValuable = PublicNetworkingValueV2{}
 
 type PublicNetworkingValueV2 struct {
 	Enabled      basetypes.BoolValue   `tfsdk:"enabled"`
-	AllowedCIDRs basetypes.ListValue   `tfsdk:"allowed_cidrs"`
+	AllowedCidrs basetypes.ListValue   `tfsdk:"allowed_cidrs"`
 	Hostname     basetypes.StringValue `tfsdk:"hostname"`
 	IPAddress    basetypes.StringValue `tfsdk:"ip_address"`
 	state        attr.ValueState
@@ -1071,7 +1071,7 @@ func (v PublicNetworkingValueV2) ToTerraformValue(ctx context.Context) (tftypes.
 
 		vals["ip_address"] = val
 
-		val, err = v.AllowedCIDRs.ToTerraformValue(ctx)
+		val, err = v.AllowedCidrs.ToTerraformValue(ctx)
 
 		if err != nil {
 			return tftypes.NewValue(objectType, tftypes.UnknownValue), err
@@ -1117,7 +1117,7 @@ func (v PublicNetworkingValueV2) ToObjectValue(ctx context.Context) (basetypes.O
 			"enabled":       v.Enabled,
 			"hostname":      v.Hostname,
 			"ip_address":    v.IPAddress,
-			"allowed_cidrs": v.AllowedCIDRs,
+			"allowed_cidrs": v.AllowedCidrs,
 		})
 
 	return objVal, diags
@@ -1150,7 +1150,7 @@ func (v PublicNetworkingValueV2) Equal(o attr.Value) bool {
 		return false
 	}
 
-	if !v.AllowedCIDRs.Equal(other.AllowedCIDRs) {
+	if !v.AllowedCidrs.Equal(other.AllowedCidrs) {
 		return false
 	}
 
@@ -1174,34 +1174,34 @@ func (v PublicNetworkingValueV2) AttributeTypes(ctx context.Context) map[string]
 	}
 }
 
-func (v PublicNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkingResponseV2, diag.Diagnostics) {
+func (v PublicNetworkingValueV2) ToDBaaSSdkResponse(ctx context.Context) (*apiv2.PostgreSQLPublicNetworking, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
 
-	for _, e := range v.AllowedCIDRs.Elements() {
+	for _, e := range v.AllowedCidrs.Elements() {
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPublicNetworkingResponseV2{
-		Enabled:      v.Enabled.ValueBool(),
-		Hostname:     v.Hostname.ValueString(),
-		IPAddress:    v.IPAddress.ValueString(),
-		AllowedCIDRs: &ipList,
+	return &apiv2.PostgreSQLPublicNetworking{
+		Enabled:      v.Enabled.ValueBoolPointer(),
+		Hostname:     v.Hostname.ValueStringPointer(),
+		IpAddress:    v.IPAddress.ValueStringPointer(),
+		AllowedCidrs: &ipList,
 	}, diags
 }
 
-func (v PublicNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*sys11dbaassdk.PSQLPublicNetworkingRequestV2, diag.Diagnostics) {
+func (v PublicNetworkingValueV2) ToDBaaSSdkRequest(ctx context.Context) (*apiv2.PostgreSQLPublicNetworking, diag.Diagnostics) {
 	var diags diag.Diagnostics
 
 	var ipList []string
 
-	for _, e := range v.AllowedCIDRs.Elements() {
+	for _, e := range v.AllowedCidrs.Elements() {
 		ipList = append(ipList, strings.Trim(e.String(), "\""))
 	}
 
-	return &sys11dbaassdk.PSQLPublicNetworkingRequestV2{
-		Enabled:      v.Enabled.ValueBool(),
-		AllowedCIDRs: &ipList,
+	return &apiv2.PostgreSQLPublicNetworking{
+		Enabled:      v.Enabled.ValueBoolPointer(),
+		AllowedCidrs: &ipList,
 	}, diags
 }

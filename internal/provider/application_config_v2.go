@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
+	apiv2 "github.com/syseleven/sys11dbaas-sdk/apiv2"
 )
 
 var _ basetypes.ObjectTypable = ApplicationConfigTypeV2{}
@@ -1767,20 +1767,19 @@ func (v ScheduledBackupsValueV2) AttributeTypes(ctx context.Context) map[string]
 	}
 }
 
-func (v ScheduledBackupsValueV2) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsV2, diag.Diagnostics) {
+func (v ScheduledBackupsValueV2) ToDBaaSSdkObject(ctx context.Context) (*apiv2.PostgreSQLBackupSchedule, diag.Diagnostics) {
 	var diags diag.Diagnostics
 	scheduleObj, d := NewScheduleValueV2(v.Schedule.AttributeTypes(ctx), v.Schedule.Attributes())
 	diags.Append(d...)
 	schedule, d := scheduleObj.ToDBaaSSdkObject(ctx)
 	diags.Append(d...)
 
-	var retention *int
-	retention = nil
+	var retention *int64
 	if !v.Retention.IsNull() && !v.Retention.IsUnknown() {
-		retention = sys11dbaassdk.Int64ToIntPtr(v.Retention.ValueInt64())
+		retention = v.Retention.ValueInt64Pointer()
 	}
 
-	return &sys11dbaassdk.PSQLScheduledBackupsV2{
+	return &apiv2.PostgreSQLBackupSchedule{
 		Retention: retention,
 		Schedule:  schedule,
 	}, diags
@@ -2155,21 +2154,20 @@ func (v ScheduleValueV2) AttributeTypes(ctx context.Context) map[string]attr.Typ
 	}
 }
 
-func (v ScheduleValueV2) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.PSQLScheduledBackupsScheduleV2, diag.Diagnostics) {
+func (v ScheduleValueV2) ToDBaaSSdkObject(ctx context.Context) (*apiv2.PostgreSQLBackupScheduleConfig, diag.Diagnostics) {
 
-	var hour *int
-	hour = nil
+	var hour *int64
 	if !v.Hour.IsNull() && !v.Hour.IsUnknown() {
-		hour = sys11dbaassdk.Int64ToIntPtr(v.Hour.ValueInt64())
+		hour = v.Hour.ValueInt64Pointer()
 	}
 
-	var minute *int
+	var minute *int64
 	minute = nil
 	if !v.Minute.IsNull() && !v.Minute.IsUnknown() {
-		minute = sys11dbaassdk.Int64ToIntPtr(v.Minute.ValueInt64())
+		minute = v.Minute.ValueInt64Pointer()
 	}
 
-	return &sys11dbaassdk.PSQLScheduledBackupsScheduleV2{
+	return &apiv2.PostgreSQLBackupScheduleConfig{
 		Hour:   hour,
 		Minute: minute,
 	}, diag.Diagnostics{}

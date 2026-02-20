@@ -10,7 +10,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-go/tftypes"
-	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
+	apiv1 "github.com/syseleven/sys11dbaas-sdk/apiv1"
 )
 
 var _ basetypes.ObjectTypable = ServiceConfigType{}
@@ -1078,27 +1078,27 @@ func (v MaintenanceWindowValue) AttributeTypes(ctx context.Context) map[string]a
 	}
 }
 
-func (v MaintenanceWindowValue) ToDBaaSSdkObject(ctx context.Context) (*sys11dbaassdk.MaintenanceWindowV1, diag.Diagnostics) {
+func (v MaintenanceWindowValue) ToDBaaSSdkObject(ctx context.Context) (*apiv1.PostgreSQLMaintenance, diag.Diagnostics) {
 
-	var dayOfWeek *int
+	var dayOfWeek *int64
 	dayOfWeek = nil
 	if !v.DayOfWeek.IsNull() && !v.DayOfWeek.IsUnknown() {
-		dayOfWeek = sys11dbaassdk.Int64ToIntPtr(v.DayOfWeek.ValueInt64())
+		dayOfWeek = v.DayOfWeek.ValueInt64Pointer()
 	}
 
-	var startHour *int
+	var startHour *int64
 	startHour = nil
 	if !v.StartHour.IsNull() && !v.StartHour.IsUnknown() {
-		startHour = sys11dbaassdk.Int64ToIntPtr(v.StartHour.ValueInt64())
+		startHour = v.StartHour.ValueInt64Pointer()
 	}
 
-	var startMinute *int
+	var startMinute *int64
 	startMinute = nil
 	if !v.StartMinute.IsNull() && !v.StartMinute.IsUnknown() {
-		startMinute = sys11dbaassdk.Int64ToIntPtr(v.StartMinute.ValueInt64())
+		startMinute = v.StartMinute.ValueInt64Pointer()
 	}
 
-	return &sys11dbaassdk.MaintenanceWindowV1{
+	return &apiv1.PostgreSQLMaintenance{
 		DayOfWeek:   dayOfWeek,
 		StartHour:   startHour,
 		StartMinute: startMinute,
