@@ -72,7 +72,22 @@ variable "db_backup_hour" {
   default = 4
 }
 
+variable "private_networking" {
+  type    = bool
+  default = true
+}
+
+variable "public_networking" {
+  type    = bool
+  default = false
+}
+
+variable "shared_subnet_cidr" {
+  type    = string
+  default = "10.245.0.0/24"
+}
+
 variable "db_remote_ips" {
   type    = list(string)
-  default = ["0.0.0.0/0"]
+  default = ["10.245.0.0/24"]
 }
