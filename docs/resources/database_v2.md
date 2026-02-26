@@ -195,3 +195,31 @@ Optional:
 - `day_of_week` (Number) Day of week as a cron time (0=Sun, 1=Mon, ..., 6=Sat). If omitted, a random day will be used.
 - `start_hour` (Number) Hour when the maintenance window starts. If omitted, a random hour between 20 and 4 will be used.
 - `start_minute` (Number) Minute when the maintenance window starts. If omitted, a random minute will be used.
+
+## Import
+
+Database can be imported using their UUID.
+
+In Terraform v1.5.0 and later, use an [`import` block](https://developer.hashicorp.com/terraform/language/import) to import Database using their UUID. For example:
+
+```tf
+import {
+  id = "{{UUID}}"
+  to = sys11dbaas_database_v2.default
+}
+```
+
+When using the [`terraform import` command](https://developer.hashicorp.com/terraform/cli/commands/import), Database can be imported using their UUID. For example:
+
+```
+$ terraform import sys11dbaas_database_v2.default {{UUID}}
+```
+
+## Migration from sys11dbaas_database
+
+In case you need to migrate the resources from V1 to V2 the following process should be followed.
+
+1. Create a V2 database by using sys11dbaas_database_v2 which reflects the same settings as V1.
+2. Import the database as described above.
+3. Remove existing V1 from state by `terraform state rm sys11dbaas_database.default`. Be careful this step is invasive.
+4. Run `terraform plan` to verify that no change is required.
