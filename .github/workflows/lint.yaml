@@ -1,0 +1,30 @@
+name: lint
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  tfplugindocs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - name: Setup Go
+        uses: actions/setup-go@v6
+      - name: Generate
+        run: |
+          go tool github.com/hashicorp/terraform-plugin-docs/cmd/tfplugindocs
+          git status -s
+  terraform:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: hashicorp/setup-terraform@v4
+      - name: Format
+        run: |
+          terraform fmt -recursive
+          git status -s
+      - name: Validate
+        run: |
+          terraform validate
