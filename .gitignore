@@ -8,3 +8,4 @@ terraform-provider-sys11dbaas
 .terraform.tfstate.lock.info
 
 ssh_private.key
+.envrc
