@@ -236,7 +236,7 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	agent := "sys11dbaas-terraform/" + p.version
 
 	// Create a new Sys11DBaaS client using the configuration values
-	client, err := sys11dbaassdk.NewClient(url, apikey, agent, 60, sys11dbaassdk.AuthModeApiKey)
+	client, err := sys11dbaassdk.NewClient(url, sys11dbaassdk.WithApiKey(apikey), sys11dbaassdk.WithUserAgent(agent))
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Unable to Create Sys11DBaaS API Client",
