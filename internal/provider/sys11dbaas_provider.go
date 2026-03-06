@@ -273,7 +273,11 @@ func (p *Sys11DBaaSProvider) Resources(ctx context.Context) []func() resource.Re
 }
 
 func (p *Sys11DBaaSProvider) DataSources(ctx context.Context) []func() datasource.DataSource {
-	return []func() datasource.DataSource{}
+	return []func() datasource.DataSource{
+		NewPostgresqlFlavorsDataSource,
+		NewPostgresqlRegionsDataSource,
+		NewPostgresqlVersionsDataSource,
+	}
 }
 
 func New(version string) func() provider.Provider {
