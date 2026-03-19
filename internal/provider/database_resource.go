@@ -4,11 +4,27 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
+	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
+	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/boolplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
@@ -17,19 +33,71 @@ import (
 
 const CREATE_RETRY_LIMIT = 30 * time.Minute
 
+type ApplicationConfigModelV1 struct {
+	Hostname              basetypes.StringValue `tfsdk:"hostname"`
+	Instances             basetypes.Int64Value  `tfsdk:"instances"`
+	IpAddress             basetypes.StringValue `tfsdk:"ip_address"`
+	Password              basetypes.StringValue `tfsdk:"password"`
+	Recovery              basetypes.ObjectValue `tfsdk:"recovery"`
+	ScheduledBackups      basetypes.ObjectValue `tfsdk:"scheduled_backups"`
+	ApplicationConfigType basetypes.StringValue `tfsdk:"type"`
+	Version               basetypes.StringValue `tfsdk:"version"`
+}
+
+func (m ApplicationConfigModelV1) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"hostname":   types.StringType,
+		"instances":  types.Int64Type,
+		"ip_address": types.StringType,
+		"password":   types.StringType,
+		"recovery": types.ObjectType{
+			AttrTypes: RecoveryModel{}.AttributeTypes(),
+		},
+		"scheduled_backups": types.ObjectType{
+			AttrTypes: ScheduledBackupsModel{}.AttributeTypes(),
+		},
+		"type":    types.StringType,
+		"version": types.StringType,
+	}
+}
+
+type ServiceConfigModelV1 struct {
+	Disksize          basetypes.Int64Value  `tfsdk:"disksize"`
+	Flavor            basetypes.StringValue `tfsdk:"flavor"`
+	MaintenanceWindow basetypes.ObjectValue `tfsdk:"maintenance_window"`
+	Region            basetypes.StringValue `tfsdk:"region"`
+	RemoteIps         basetypes.ListValue   `tfsdk:"remote_ips"`
+	ServiceConfigType basetypes.StringValue `tfsdk:"type"`
+}
+
+func (m ServiceConfigModelV1) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"disksize": types.Int64Type,
+		"flavor":   types.StringType,
+		"maintenance_window": types.ObjectType{
+			AttrTypes: MaintenanceWindowModel{}.AttributeTypes(),
+		},
+		"region": types.StringType,
+		"remote_ips": types.ListType{
+			ElemType: types.StringType,
+		},
+		"type": types.StringType,
+	}
+}
+
 type DatabaseModel struct {
-	ApplicationConfig types.Object `tfsdk:"application_config"`
-	CreatedAt         types.String `tfsdk:"created_at"`
-	CreatedBy         types.String `tfsdk:"created_by"`
-	Description       types.String `tfsdk:"description"`
-	LastModifiedAt    types.String `tfsdk:"last_modified_at"`
-	LastModifiedBy    types.String `tfsdk:"last_modified_by"`
-	Name              types.String `tfsdk:"name"`
-	ServiceConfig     types.Object `tfsdk:"service_config"`
-	Status            types.String `tfsdk:"status"`
-	Phase             types.String `tfsdk:"phase"`
-	ResourceStatus    types.String `tfsdk:"resource_status"`
-	Uuid              types.String `tfsdk:"uuid"`
+	ApplicationConfig types.Object      `tfsdk:"application_config"`
+	CreatedAt         timetypes.RFC3339 `tfsdk:"created_at"`
+	CreatedBy         types.String      `tfsdk:"created_by"`
+	Description       types.String      `tfsdk:"description"`
+	LastModifiedAt    timetypes.RFC3339 `tfsdk:"last_modified_at"`
+	LastModifiedBy    types.String      `tfsdk:"last_modified_by"`
+	Name              types.String      `tfsdk:"name"`
+	ServiceConfig     types.Object      `tfsdk:"service_config"`
+	Status            types.String      `tfsdk:"status"`
+	Phase             types.String      `tfsdk:"phase"`
+	ResourceStatus    types.String      `tfsdk:"resource_status"`
+	Uuid              types.String      `tfsdk:"uuid"`
 }
 
 // resource
@@ -82,29 +150,16 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	var psqlDB database.PostgreSQLGetResponseV1
-	var err error
-	errCount := 0
-	for {
-		psqlDB, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
-		if err != nil {
-			errCount++
-			if errCount >= 3 {
-				resp.Diagnostics.AddError(
-					"Unable to Read database",
-					err.Error(),
-				)
-				return
-			}
-			tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
-			continue
-		} else {
-			errCount = 0
-			break
-		}
+	psqlDB, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Unable to Read database",
+			err.Error(),
+		)
+		return
 	}
 
-	diags = psqlGetResponseToModel(ctx, psqlDB, &state, state)
+	diags = psqlGetResponseToModel(ctx, psqlDB, &state)
 	ctx = tflog.SetField(ctx, "read_target_state", state)
 	tflog.Debug(ctx, "Reading database", nil)
 	resp.Diagnostics.Append(diags...)
@@ -113,11 +168,8 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 	}
 
 	// Set refreshed state
-	diags = resp.State.Set(ctx, &state)
+	diags = resp.State.Set(ctx, state)
 	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
 }
 
 // Create resource.
@@ -130,49 +182,86 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	serviceConfig, diags := NewServiceConfigValue(plan.ServiceConfig.AttributeTypes(ctx), plan.ServiceConfig.Attributes())
+	var applicationConfig ApplicationConfigModelV1
+	diags = plan.ApplicationConfig.As(ctx, &applicationConfig, basetypes.ObjectAsOptions{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var ipList []string
+	var scheduledBackups *database.PostgreSQLBackupSchedule
+	if !applicationConfig.ScheduledBackups.IsUnknown() {
+		var scheduledBackupsModel ScheduledBackupsModel
+		resp.Diagnostics.Append(applicationConfig.ScheduledBackups.As(ctx, &scheduledBackupsModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 
-	for _, e := range serviceConfig.RemoteIps.Elements() {
-		ipList = append(ipList, strings.Trim(e.String(), "\""))
+		var schedule ScheduleModel
+		resp.Diagnostics.Append(scheduledBackupsModel.Schedule.As(ctx, &schedule, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		scheduledBackups = &database.PostgreSQLBackupSchedule{
+			Retention: scheduledBackupsModel.Retention.ValueInt64Pointer(),
+			Schedule: &database.PostgreSQLBackupScheduleConfig{
+				Hour:   schedule.Hour.ValueInt64Pointer(),
+				Minute: schedule.Minute.ValueInt64Pointer(),
+			},
+		}
+	}
+
+	var recovery *database.PostgreSQLRecovery
+	if !applicationConfig.Recovery.IsUnknown() && !applicationConfig.Recovery.IsNull() {
+		var recoveryModel RecoveryModel
+		resp.Diagnostics.Append(applicationConfig.Recovery.As(ctx, &recoveryModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
+			return
+		}
+
+		recovery = &database.PostgreSQLRecovery{
+			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
+			Source:     recoveryModel.Source.ValueStringPointer(),
+			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
+			TargetName: recoveryModel.TargetName.ValueStringPointer(),
+			TargetTime: &targetTime,
+			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
+		}
+	}
+
+	var serviceConfig ServiceConfigModelV1
+	resp.Diagnostics.Append(plan.ServiceConfig.As(ctx, &serviceConfig, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var remoteIps []string
+	if !serviceConfig.RemoteIps.IsNull() && !serviceConfig.RemoteIps.IsUnknown() {
+		resp.Diagnostics.Append(serviceConfig.RemoteIps.ElementsAs(ctx, &remoteIps, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
 	}
 
 	var maintenanceWindow *database.PostgreSQLMaintenance
 	if !serviceConfig.MaintenanceWindow.IsUnknown() {
-		maintenanceWindowObj, diags := NewMaintenanceWindowValue(serviceConfig.MaintenanceWindow.AttributeTypes(ctx), serviceConfig.MaintenanceWindow.Attributes())
-		resp.Diagnostics.Append(diags...)
+		var maintenanceWindowModel MaintenanceWindowModel
+		resp.Diagnostics.Append(serviceConfig.MaintenanceWindow.As(ctx, &maintenanceWindowModel, basetypes.ObjectAsOptions{})...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		maintenanceWindow, diags = maintenanceWindowObj.ToDBaaSSdkObject(ctx)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
 
-	applicationConfig, diags := NewApplicationConfigValue(plan.ApplicationConfig.AttributeTypes(ctx), plan.ApplicationConfig.Attributes())
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var backupSchedule *database.PostgreSQLBackupSchedule
-	if !applicationConfig.ScheduledBackups.IsUnknown() {
-		scheduledBackupsObj, diags := NewScheduledBackupsValue(applicationConfig.ScheduledBackups.AttributeTypes(ctx), applicationConfig.ScheduledBackups.Attributes())
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		backupSchedule, diags = scheduledBackupsObj.ToDBaaSSdkObject(ctx)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
+		maintenanceWindow = &database.PostgreSQLMaintenance{
+			DayOfWeek:   maintenanceWindowModel.DayOfWeek.ValueInt64Pointer(),
+			StartHour:   maintenanceWindowModel.StartHour.ValueInt64Pointer(),
+			StartMinute: maintenanceWindowModel.StartMinute.ValueInt64Pointer(),
 		}
 	}
 
@@ -185,14 +274,15 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			Flavor:            serviceConfig.Flavor.ValueString(),
 			Region:            serviceConfig.Region.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIps:         &ipList,
+			RemoteIps:         &remoteIps,
 		},
 		ApplicationConfig: database.PostgreSQLApplicationConfigV1{
 			Type:             applicationConfig.ApplicationConfigType.ValueString(),
 			Password:         applicationConfig.Password.ValueString(),
 			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
 			Version:          applicationConfig.Version.ValueString(),
-			ScheduledBackups: backupSchedule,
+			ScheduledBackups: scheduledBackups,
+			Recovery:         recovery,
 		},
 	}
 
@@ -210,54 +300,35 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 	}
 
 	// Map response body to schema and populate Computed attribute values
-	targetState := DatabaseModel{}
-	diags = psqlCreateResponseToModel(ctx, createResponse, plan, &targetState)
+	diags = psqlGetResponseToModel(ctx, createResponse, &plan)
 
-	ctx = tflog.SetField(ctx, "create_target_state", &targetState)
-	tflog.Debug(ctx, "[CREATE] Created", nil)
-	resp.Diagnostics.Append(diags...)
-
-	tflog.Debug(ctx, "[CREATE] Wait for creation: "+r.waitForCreation.String(), nil)
 	if r.waitForCreation.ValueBool() {
-		sleepFor := time.Duration(30 * time.Second)
-		errCount := 0
-		for retryCount := 0; targetState.Status.ValueString() != database.StateReady; {
-			if retryCount == int((CREATE_RETRY_LIMIT / sleepFor).Abs()) {
-				diags = resp.State.Set(ctx, &targetState)
-				resp.Diagnostics.Append(diags...)
-				resp.Diagnostics.AddError("RetryLimit reached during wait_for_creation", "The retry limit of "+CREATE_RETRY_LIMIT.String()+" was reached while waiting for creation of database")
+		for createResponse.Status != database.StateReady {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(30 * time.Second)
+			}
+			createResponse, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error read database during wait",
+					"Could not read database during wait, unexpected error: "+err.Error(),
+				)
 				return
 			}
-			time.Sleep(sleepFor)
-			getResponse, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
-			if err != nil {
-				errCount++
-				if errCount >= 3 {
-					resp.Diagnostics.AddError(
-						"Error read database during wait",
-						"Could not read database during wait, unexpected error: "+err.Error(),
-					)
-					return
-				}
-				tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
-				continue
-			}
-			errCount = 0
-			diags = psqlGetResponseToModel(ctx, getResponse, &targetState, plan)
-
-			ctx = tflog.SetField(ctx, "create_target_state", &targetState)
-			tflog.Debug(ctx, "[CREATE] Current creation state", nil)
-			resp.Diagnostics.Append(diags...)
-			retryCount++
 		}
 	}
 
-	// Set state to fully populated data
-	diags = resp.State.Set(ctx, &targetState)
+	diags = psqlGetResponseToModel(ctx, createResponse, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Delete resource.
@@ -292,57 +363,84 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	if resp.Diagnostics.HasError() {
 		return
 	}
-	// Get current state
-	var state DatabaseModel
-	diags = req.State.Get(ctx, &state)
+
+	var applicationConfig ApplicationConfigModelV1
+	diags = plan.ApplicationConfig.As(ctx, &applicationConfig, basetypes.ObjectAsOptions{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	serviceConfig, diags := NewServiceConfigValue(plan.ServiceConfig.AttributeTypes(ctx), plan.ServiceConfig.Attributes())
-	resp.Diagnostics.Append(diags...)
+	var scheduledBackups *database.PostgreSQLBackupSchedule
+	if !applicationConfig.ScheduledBackups.IsUnknown() {
+		var scheduledBackupsModel ScheduledBackupsModel
+		resp.Diagnostics.Append(applicationConfig.ScheduledBackups.As(ctx, &scheduledBackupsModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		var schedule ScheduleModel
+		resp.Diagnostics.Append(scheduledBackupsModel.Schedule.As(ctx, &schedule, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		scheduledBackups = &database.PostgreSQLBackupSchedule{
+			Retention: scheduledBackupsModel.Retention.ValueInt64Pointer(),
+			Schedule: &database.PostgreSQLBackupScheduleConfig{
+				Hour:   schedule.Hour.ValueInt64Pointer(),
+				Minute: schedule.Minute.ValueInt64Pointer(),
+			},
+		}
+	}
+
+	var recovery *database.PostgreSQLRecovery
+	if !applicationConfig.Recovery.IsUnknown() && !applicationConfig.Recovery.IsNull() {
+		var recoveryModel RecoveryModel
+		resp.Diagnostics.Append(applicationConfig.Recovery.As(ctx, &recoveryModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
+			return
+		}
+
+		recovery = &database.PostgreSQLRecovery{
+			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
+			Source:     recoveryModel.Source.ValueStringPointer(),
+			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
+			TargetName: recoveryModel.TargetName.ValueStringPointer(),
+			TargetTime: &targetTime,
+			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
+		}
+	}
+
+	var serviceConfig ServiceConfigModelV1
+	resp.Diagnostics.Append(plan.ServiceConfig.As(ctx, &serviceConfig, basetypes.ObjectAsOptions{})...)
 	if resp.Diagnostics.HasError() {
 		return
 	}
 
-	var ipList []string
-
+	var remoteIps []string
 	for _, e := range serviceConfig.RemoteIps.Elements() {
-		ipList = append(ipList, strings.Trim(e.String(), "\""))
+		remoteIps = append(remoteIps, strings.Trim(e.String(), "\""))
 	}
 
 	var maintenanceWindow *database.PostgreSQLMaintenance
 	if !serviceConfig.MaintenanceWindow.IsUnknown() {
-		maintenanceWindowObj, diags := NewMaintenanceWindowValue(serviceConfig.MaintenanceWindow.AttributeTypes(ctx), serviceConfig.MaintenanceWindow.Attributes())
-		resp.Diagnostics.Append(diags...)
+		var maintenanceWindowModel MaintenanceWindowModel
+		resp.Diagnostics.Append(serviceConfig.MaintenanceWindow.As(ctx, &maintenanceWindowModel, basetypes.ObjectAsOptions{})...)
 		if resp.Diagnostics.HasError() {
 			return
 		}
-		maintenanceWindow, diags = maintenanceWindowObj.ToDBaaSSdkObject(ctx)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
 
-	applicationConfig, diags := NewApplicationConfigValue(plan.ApplicationConfig.AttributeTypes(ctx), plan.ApplicationConfig.Attributes())
-	resp.Diagnostics.Append(diags...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var backupSchedule *database.PostgreSQLBackupSchedule
-	if !applicationConfig.ScheduledBackups.IsUnknown() {
-		scheduledBackupsObj, diags := NewScheduledBackupsValue(applicationConfig.ScheduledBackups.AttributeTypes(ctx), applicationConfig.ScheduledBackups.Attributes())
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-		backupSchedule, diags = scheduledBackupsObj.ToDBaaSSdkObject(ctx)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			return
+		maintenanceWindow = &database.PostgreSQLMaintenance{
+			DayOfWeek:   maintenanceWindowModel.DayOfWeek.ValueInt64Pointer(),
+			StartHour:   maintenanceWindowModel.StartHour.ValueInt64Pointer(),
+			StartMinute: maintenanceWindowModel.StartMinute.ValueInt64Pointer(),
 		}
 	}
 
@@ -353,14 +451,17 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 			Disksize:          serviceConfig.Disksize.ValueInt64Pointer(),
 			Type:              serviceConfig.ServiceConfigType.ValueString(),
 			Flavor:            serviceConfig.Flavor.ValueString(),
+			Region:            serviceConfig.Region.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIps:         &ipList,
+			RemoteIps:         &remoteIps,
 		},
 		ApplicationConfig: database.PostgreSQLApplicationConfigV1{
+			Type:             applicationConfig.ApplicationConfigType.ValueString(),
 			Password:         applicationConfig.Password.ValueString(),
 			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
 			Version:          applicationConfig.Version.ValueString(),
-			ScheduledBackups: backupSchedule,
+			ScheduledBackups: scheduledBackups,
+			Recovery:         recovery,
 		},
 	}
 
@@ -368,7 +469,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	tflog.Debug(ctx, string(d), nil)
 
 	// Update psql
-	_, err := r.client.UpdatePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString(), updateRequest)
+	_, err := r.client.UpdatePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString(), updateRequest)
 	if err != nil {
 		resp.Diagnostics.AddError(
 			"Error updating database",
@@ -378,246 +479,435 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	errCount := 0
-	for i := 0; i < 10; i++ {
-		time.Sleep(2 * time.Second) // give DBaaS time to propagate changes
-		tflog.Debug(ctx, "wait 2 seconds to give DBaaS time to propagate", nil)
-
-		// Update psql
-		getResponse, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
-		if err != nil {
-			errCount++
-			if errCount >= 3 {
-				resp.Diagnostics.AddError(
-					"Error reading updated database",
-					"Could not read updated database, unexpected error: "+err.Error(),
-				)
-				return
-			}
-			tflog.Warn(ctx, "Error reading updated database, retrying", map[string]interface{}{"error": err.Error()})
-			continue
-		}
-		errCount = 0
-
-		// Map response body to schema and populate Computed attribute values
-		targetState := DatabaseModel{}
-		diags = psqlGetResponseToModel(ctx, getResponse, &targetState, plan)
-
-		ctx = tflog.SetField(ctx, "update_target_state", &targetState)
-		tflog.Debug(ctx, "Updated State", nil)
-		resp.Diagnostics.Append(diags...)
-
-		// Set state to fully populated data
-		diags = resp.State.Set(ctx, &targetState)
-		resp.Diagnostics.Append(diags...)
-		if resp.Diagnostics.HasError() {
-			continue
-		}
+	// Update psql
+	response, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
+	if err != nil {
+		resp.Diagnostics.AddError(
+			"Error reading updated database",
+			"Could not read updated database, unexpected error: "+err.Error(),
+		)
+		return
 	}
+
+	diags = psqlGetResponseToModel(ctx, response, &plan)
+	resp.Diagnostics.Append(diags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	diags = resp.State.Set(ctx, plan)
+	resp.Diagnostics.Append(diags...)
 }
 
 // Schema defines the schema for the resource.
 func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = DatabaseResourceSchema(ctx)
+	resp.Schema = schema.Schema{
+		Attributes: map[string]schema.Attribute{
+			"application_config": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"hostname": schema.StringAttribute{
+						Computed:    true,
+						Description: "DNS name of the database in the format uuid.postgresql.syseleven.services.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"instances": schema.Int64Attribute{
+						Required:    true,
+						Description: "Node count of the database cluster.",
+						Validators: []validator.Int64{
+							int64validator.AtMost(5),
+						},
+					},
+					"ip_address": schema.StringAttribute{
+						Computed:    true,
+						Description: "Public IP address of the database. It will be 'Pending' if no address has been assigned yet.",
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"password": schema.StringAttribute{
+						Optional:    true,
+						Computed:    true,
+						Sensitive:   true,
+						Description: "Password for the admin user.",
+						Validators: []validator.String{
+							stringvalidator.LengthAtLeast(16),
+						},
+						PlanModifiers: []planmodifier.String{
+							stringplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"recovery": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"exclusive": schema.BoolAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Set to true, when the given target should be excluded.",
+								Default:     booldefault.StaticBool(false),
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"source": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "UUID of the source database.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"target_lsn": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"target_name": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"target_time": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"target_xid": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+						},
+						Optional: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+							objectplanmodifier.RequiresReplaceIfConfigured(),
+						},
+					},
+					"scheduled_backups": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"retention": schema.Int64Attribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Duration in days for which backups should be stored.",
+								Validators: []validator.Int64{
+									int64validator.Between(7, 90),
+								},
+								Default: int64default.StaticInt64(7),
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+							"schedule": schema.SingleNestedAttribute{
+								Attributes: map[string]schema.Attribute{
+									"hour": schema.Int64Attribute{
+										Optional:    true,
+										Computed:    true,
+										Description: "Hour when the full backup should start. If this value is omitted, a random hour between 1am and 5am will be generated.",
+										Validators: []validator.Int64{
+											int64validator.Between(0, 23),
+										},
+										PlanModifiers: []planmodifier.Int64{
+											int64planmodifier.UseStateForUnknown(),
+										},
+									},
+									"minute": schema.Int64Attribute{
+										Optional:    true,
+										Computed:    true,
+										Description: "Minute when the full backup should start. If this value is omitted, a random minute will be generated.",
+										Validators: []validator.Int64{
+											int64validator.Between(0, 59),
+										},
+										PlanModifiers: []planmodifier.Int64{
+											int64planmodifier.UseStateForUnknown(),
+										},
+									},
+								},
+								Optional:    true,
+								Computed:    true,
+								Description: "Schedules for the backup policy.",
+							},
+						},
+						Optional:    true,
+						Computed:    true,
+						Description: "Scheduled backups policy for the database.",
+					},
+					"type": schema.StringAttribute{
+						Required:    true,
+						Description: "Type of the database. Currently only supports 'postgresql'.",
+					},
+					"version": schema.StringAttribute{
+						Required:    true,
+						Description: "Minor version of PostgreSQL.",
+					},
+				},
+				Required: true,
+			},
+			"created_at": schema.StringAttribute{
+				CustomType:  timetypes.RFC3339Type{},
+				Computed:    true,
+				Description: "Date when the database was created.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"created_by": schema.StringAttribute{
+				Computed:    true,
+				Description: "Initial creator of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+			"description": schema.StringAttribute{
+				Optional:    true,
+				Computed:    true,
+				Description: "Fulltext description of the database.",
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(0, 128),
+				},
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+				Default: stringdefault.StaticString(""),
+			},
+			"last_modified_at": schema.StringAttribute{
+				CustomType:  timetypes.RFC3339Type{},
+				Computed:    true,
+				Description: "Date when the database was last modified.",
+			},
+			"last_modified_by": schema.StringAttribute{
+				Computed:    true,
+				Description: "User who last changed the database.",
+			},
+			"name": schema.StringAttribute{
+				Required:    true,
+				Description: "Name of the database.",
+				Validators: []validator.String{
+					stringvalidator.LengthBetween(1, 64),
+					stringvalidator.RegexMatches(regexp.MustCompile("^(([A-Za-z0-9][-A-Za-z0-9_.]*)?[A-Za-z0-9])?$"), ""),
+				},
+			},
+			"service_config": schema.SingleNestedAttribute{
+				Attributes: map[string]schema.Attribute{
+					"disksize": schema.Int64Attribute{
+						Required:    true,
+						Description: "Disksize in GB.",
+						Validators: []validator.Int64{
+							int64validator.Between(5, 500),
+						},
+					},
+					"flavor": schema.StringAttribute{
+						Required:    true,
+						Description: "VM flavor to use.",
+					},
+					"maintenance_window": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"day_of_week": schema.Int64Attribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Day of week as a cron time (0=Sun, 1=Mon, ..., 6=Sat). If omitted, a random day will be used.",
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+							"start_hour": schema.Int64Attribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Hour when the maintenance window starts. If omitted, a random hour between 20 and 4 will be used.",
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+							"start_minute": schema.Int64Attribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Minute when the maintenance window starts. If omitted, a random minute will be used.",
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+						},
+						Optional:    true,
+						Computed:    true,
+						Description: "Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"region": schema.StringAttribute{
+						Required:    true,
+						Description: "Region for the database.",
+					},
+					"remote_ips": schema.ListAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Computed:    true,
+						Description: "List of IP addresses, that should be allowed to connect to the database.",
+						PlanModifiers: []planmodifier.List{
+							listplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"type": schema.StringAttribute{
+						Optional:    true,
+						Computed:    true,
+						Description: "Type of the service you want to create (default `database`)",
+						Default:     stringdefault.StaticString("database"),
+					},
+				},
+				Required: true,
+			},
+			"status": schema.StringAttribute{
+				Computed:    true,
+				Description: "Overall status of the database.",
+			},
+			"phase": schema.StringAttribute{
+				Computed:    true,
+				Description: "Detailed status of the database.",
+			},
+			"resource_status": schema.StringAttribute{
+				Computed:    true,
+				Description: "Sync status of the database.",
+			},
+			"uuid": schema.StringAttribute{
+				Computed:    true,
+				Description: "UUID of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
+			},
+		},
+	}
 }
 
-func psqlCreateResponseToModel(ctx context.Context, db database.PostgreSQLGetResponseV1, plan DatabaseModel, targetState *DatabaseModel) diag.Diagnostics {
-
+func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetResponseV1, model *DatabaseModel) diag.Diagnostics {
 	var diags diag.Diagnostics
-
-	ctx = tflog.SetField(ctx, "conversion_create_source_response", db)
-	tflog.Debug(ctx, "Converting create api response")
-
-	ipList, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
-
-	var recoveryObjValue basetypes.ObjectValue
-	if db.ApplicationConfig.Recovery != nil {
-		recoveryObjValue, _ = RecoveryValue{
-			Exclusive:  types.BoolPointerValue(db.ApplicationConfig.Recovery.Exclusive),
-			Source:     types.StringPointerValue(db.ApplicationConfig.Recovery.Source),
-			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
-			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
-			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
-			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
-		}.ToObjectValue(ctx)
-	}
-
-	var scheduledBackupsObjVal basetypes.ObjectValue
-	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
-		scheduleObjVal, _ := ScheduleValue{
-			Hour:   types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Hour),
-			Minute: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Minute),
-		}.ToObjectValue(ctx)
-
-		scheduledBackupsObjVal, _ = ScheduledBackupsValue{
-			Schedule:  scheduleObjVal,
-			Retention: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Retention),
-		}.ToObjectValue(ctx)
-	} else {
-		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValue{}.AttributeTypes(ctx))
-	}
-
-	var maintenanceWindowObjVal basetypes.ObjectValue
-	if db.ServiceConfig.MaintenanceWindow != nil {
-		maintenanceWindowObjVal, _ = MaintenanceWindowValue{
-			DayOfWeek:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.DayOfWeek),
-			StartHour:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartHour),
-			StartMinute: types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartMinute),
-		}.ToObjectValue(ctx)
-	} else {
-		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValue{}.AttributeTypes(ctx))
-	}
-
-	diags.Append(d...)
-
-	var targetServiceConfig ServiceConfigValue
-	targetServiceConfig.Disksize = types.Int64PointerValue(db.ServiceConfig.Disksize)
-	targetServiceConfig.ServiceConfigType = types.StringValue(db.ServiceConfig.Type)
-	targetServiceConfig.Flavor = types.StringValue(db.ServiceConfig.Flavor)
-	targetServiceConfig.Region = types.StringValue(db.ServiceConfig.Region)
-	targetServiceConfig.MaintenanceWindow = maintenanceWindowObjVal
-	targetServiceConfig.RemoteIps = ipList
-
-	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
-
-	// Extract password from plan for state consistency
-	// The API response doesn't include the password for security reasons, but Terraform
-	// needs to store it in state to detect changes. We must use the planned password
-	// value to ensure the sensitive application_config object remains consistent
-	// between plan and apply phases, preventing "inconsistent values for sensitive attribute" errors.
-	planPassword := ""
-	if passwordAttr, exists := plan.ApplicationConfig.Attributes()["password"]; exists {
-		planPassword = strings.Trim(passwordAttr.String(), "\"")
-	}
-
-	var targetApplicationConfig ApplicationConfigValue
-	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
-	targetApplicationConfig.Password = types.StringValue(planPassword) // take this from the plan, since it is not included in the response
-	targetApplicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
-	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
-	targetApplicationConfig.Hostname = types.StringPointerValue(db.ApplicationConfig.Hostname)
-	targetApplicationConfig.IpAddress = types.StringPointerValue(db.ApplicationConfig.IpAddress)
-	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
-	targetApplicationConfig.Recovery = recoveryObjValue
-
-	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
-
-	targetState.Uuid = types.StringValue(db.Uuid)
-	targetState.Name = types.StringValue(db.Name)
-	targetState.Description = types.StringValue(db.Description)
-	targetState.Status = types.StringValue(db.Status)
-	targetState.Phase = types.StringValue(db.Phase)
-	targetState.ResourceStatus = types.StringValue(db.ResourceStatus)
-	targetState.CreatedBy = types.StringValue(db.CreatedBy)
-	targetState.CreatedAt = types.StringValue(db.CreatedAt.Format(time.RFC3339))
-	targetState.LastModifiedBy = types.StringValue(db.LastModifiedBy)
-	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt.Format(time.RFC3339))
-	targetState.ApplicationConfig = targetApplicationConfigObj
-	targetState.ServiceConfig = targetServiceConfigObj
-
-	ctx = tflog.SetField(ctx, "conversion_create_target_state", &targetState)
-	tflog.Debug(ctx, "Converted api create response to state")
-
-	return diags
-
-}
-
-func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetResponseV1, targetState *DatabaseModel, previousState DatabaseModel) diag.Diagnostics {
-
-	var diags diag.Diagnostics
+	var conversionDiags diag.Diagnostics
 
 	ctx = tflog.SetField(ctx, "conversion_read_source_response", db)
 	tflog.Debug(ctx, "Converting read api response")
 
-	ipList, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
+	var d diag.Diagnostics
+	remoteIps, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
+	diags.Append(d...)
 
-	var recoveryObjValue basetypes.ObjectValue
+	serviceConfig := ServiceConfigModelV1{
+		Disksize:          types.Int64PointerValue(db.ServiceConfig.Disksize),
+		ServiceConfigType: types.StringValue(db.ServiceConfig.Type),
+		Flavor:            types.StringValue(db.ServiceConfig.Flavor),
+		Region:            types.StringValue(db.ServiceConfig.Region),
+		RemoteIps:         remoteIps,
+	}
+
+	if db.ServiceConfig.MaintenanceWindow != nil {
+		maintenanceWindow := MaintenanceWindowModel{
+			DayOfWeek:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.DayOfWeek),
+			StartHour:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartHour),
+			StartMinute: types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartMinute),
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, maintenanceWindow.AttributeTypes(), maintenanceWindow)
+		diags.Append(conversionDiags...)
+		serviceConfig.MaintenanceWindow = objectValue
+	}
+
+	model.ServiceConfig, conversionDiags = types.ObjectValueFrom(ctx, serviceConfig.AttributeTypes(), serviceConfig)
+	diags.Append(conversionDiags...)
+
+	applicationConfig := ApplicationConfigModelV1{
+		ApplicationConfigType: types.StringValue(db.ApplicationConfig.Type),
+		Instances:             types.Int64PointerValue(db.ApplicationConfig.Instances),
+		Version:               types.StringValue(db.ApplicationConfig.Version),
+	}
+
+	// Extract password consistently - use plan password for create response
+	if !model.ApplicationConfig.IsNull() && !model.ApplicationConfig.IsUnknown() {
+		var planApplicationConfig ApplicationConfigModelV1
+		planDiags := model.ApplicationConfig.As(ctx, &planApplicationConfig, basetypes.ObjectAsOptions{})
+		diags.Append(planDiags...)
+		if diags.HasError() {
+			return diags
+		}
+
+		if !planApplicationConfig.Password.IsNull() && !planApplicationConfig.Password.IsUnknown() {
+			passwordValue, passwordDiags := planApplicationConfig.Password.ToStringValue(ctx)
+			diags.Append(passwordDiags...)
+			if diags.HasError() {
+				return diags
+			}
+			applicationConfig.Password = passwordValue
+		} else {
+			applicationConfig.Password = types.StringNull()
+		}
+	}
+
+	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
+		scheduledBackups := ScheduledBackupsModel{
+			Retention: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Retention),
+		}
+
+		schedule := ScheduleModel{
+			Hour:   types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Hour),
+			Minute: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Minute),
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, schedule.AttributeTypes(), schedule)
+		diags.Append(conversionDiags...)
+		scheduledBackups.Schedule = objectValue
+
+		objectValue, conversionDiags = types.ObjectValueFrom(ctx, scheduledBackups.AttributeTypes(), scheduledBackups)
+		diags.Append(conversionDiags...)
+		applicationConfig.ScheduledBackups = objectValue
+	} else {
+		applicationConfig.ScheduledBackups = types.ObjectNull(ScheduleModel{}.AttributeTypes())
+	}
+
 	if db.ApplicationConfig.Recovery != nil {
-		recoveryObjValue, _ = RecoveryValue{
+		recovery := RecoveryModel{
 			Exclusive:  types.BoolPointerValue(db.ApplicationConfig.Recovery.Exclusive),
 			Source:     types.StringPointerValue(db.ApplicationConfig.Recovery.Source),
 			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
 			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
 			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
 			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
-		}.ToObjectValue(ctx)
-	}
-
-	var scheduledBackupsObjVal basetypes.ObjectValue
-	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
-		scheduleObjVal, _ := ScheduleValue{
-			Hour:   types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Hour),
-			Minute: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Schedule.Minute),
-		}.ToObjectValue(ctx)
-
-		scheduledBackupsObjVal, _ = ScheduledBackupsValue{
-			Schedule:  scheduleObjVal,
-			Retention: types.Int64PointerValue(db.ApplicationConfig.ScheduledBackups.Retention),
-		}.ToObjectValue(ctx)
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, recovery.AttributeTypes(), recovery)
+		diags.Append(conversionDiags...)
+		applicationConfig.Recovery = objectValue
 	} else {
-		scheduledBackupsObjVal = types.ObjectNull(ScheduledBackupsValue{}.AttributeTypes(ctx))
+		applicationConfig.Recovery = types.ObjectNull(RecoveryModel{}.AttributeTypes())
 	}
 
-	var maintenanceWindowObjVal basetypes.ObjectValue
-	if db.ServiceConfig.MaintenanceWindow != nil {
-		maintenanceWindowObjVal, _ = MaintenanceWindowValue{
-			DayOfWeek:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.DayOfWeek),
-			StartHour:   types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartHour),
-			StartMinute: types.Int64PointerValue(db.ServiceConfig.MaintenanceWindow.StartMinute),
-		}.ToObjectValue(ctx)
-	} else {
-		maintenanceWindowObjVal = types.ObjectNull(MaintenanceWindowValue{}.AttributeTypes(ctx))
-	}
+	model.Uuid = types.StringValue(db.Uuid)
+	model.Name = types.StringValue(db.Name)
+	model.Description = types.StringValue(db.Description)
+	model.Status = types.StringValue(db.Status)
+	model.Phase = types.StringValue(db.Phase)
+	model.ResourceStatus = types.StringValue(db.ResourceStatus)
+	model.CreatedBy = types.StringValue(db.CreatedBy)
+	model.CreatedAt = timetypes.NewRFC3339TimePointerValue(db.CreatedAt)
+	model.LastModifiedBy = types.StringValue(db.LastModifiedBy)
+	model.LastModifiedAt = timetypes.NewRFC3339TimePointerValue(db.LastModifiedAt)
 
-	diags.Append(d...)
+	var applicationConfigDiags diag.Diagnostics
+	model.ApplicationConfig, applicationConfigDiags = types.ObjectValueFrom(ctx, applicationConfig.AttributeTypes(), applicationConfig)
+	diags.Append(applicationConfigDiags...)
 
-	var targetServiceConfig ServiceConfigValue
-	targetServiceConfig.Disksize = types.Int64PointerValue(db.ServiceConfig.Disksize)
-	targetServiceConfig.ServiceConfigType = types.StringValue(db.ServiceConfig.Type)
-	targetServiceConfig.Flavor = types.StringValue(db.ServiceConfig.Flavor)
-	targetServiceConfig.Region = types.StringValue(db.ServiceConfig.Region)
-	targetServiceConfig.MaintenanceWindow = maintenanceWindowObjVal
-	targetServiceConfig.RemoteIps = ipList
+	var serviceConfigDiags diag.Diagnostics
+	model.ServiceConfig, serviceConfigDiags = types.ObjectValueFrom(ctx, serviceConfig.AttributeTypes(), serviceConfig)
+	diags.Append(serviceConfigDiags...)
 
-	targetServiceConfigObj, diags := targetServiceConfig.ToObjectValue(ctx)
-
-	// Extract password from previous state for consistency
-	// During read operations, the API doesn't return the password. We must preserve
-	// the password from the previous Terraform state to maintain consistency of the
-	// sensitive application_config object and prevent state drift or validation errors.
-	previousPassword := ""
-	if passwordAttr, exists := previousState.ApplicationConfig.Attributes()["password"]; exists {
-		previousPassword = strings.Trim(passwordAttr.String(), "\"")
-	}
-
-	var targetApplicationConfig ApplicationConfigValue
-	targetApplicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
-	targetApplicationConfig.Password = types.StringValue(previousPassword)
-	targetApplicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
-	targetApplicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
-	targetApplicationConfig.Hostname = types.StringPointerValue(db.ApplicationConfig.Hostname)
-	targetApplicationConfig.IpAddress = types.StringPointerValue(db.ApplicationConfig.IpAddress)
-	targetApplicationConfig.ScheduledBackups = scheduledBackupsObjVal
-	targetApplicationConfig.Recovery = recoveryObjValue
-
-	targetApplicationConfigObj, diags := targetApplicationConfig.ToObjectValue(ctx)
-
-	targetState.Uuid = types.StringValue(db.Uuid)
-	targetState.Name = types.StringValue(db.Name)
-	targetState.Description = types.StringValue(db.Description)
-	targetState.Status = types.StringValue(db.Status)
-	targetState.Phase = types.StringValue(db.Phase)
-	targetState.ResourceStatus = types.StringValue(db.ResourceStatus)
-	targetState.CreatedBy = types.StringValue(db.CreatedBy)
-	targetState.CreatedAt = types.StringValue(db.CreatedAt.Format(time.RFC3339))
-	targetState.LastModifiedBy = types.StringValue(db.LastModifiedBy)
-	targetState.LastModifiedAt = types.StringValue(db.LastModifiedAt.Format(time.RFC3339))
-	targetState.ApplicationConfig = targetApplicationConfigObj
-	targetState.ServiceConfig = targetServiceConfigObj
-
-	ctx = tflog.SetField(ctx, "conversion_read_target_state", targetState)
-	tflog.Debug(ctx, "Converted api read response to state")
+	ctx = tflog.SetField(ctx, "conversion_read_model", model)
+	tflog.Debug(ctx, "Converted api read response to model")
 
 	return diags
-
 }
