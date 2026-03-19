@@ -83,13 +83,41 @@ Required:
 Optional:
 
 - `password` (String, Sensitive) Password for the admin user.
+- `private_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--private_networking))
+- `public_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--public_networking))
 - `recovery` (Attributes) (see [below for nested schema](#nestedatt--application_config--recovery))
 - `scheduled_backups` (Attributes) Scheduled backups policy for the database. (see [below for nested schema](#nestedatt--application_config--scheduled_backups))
+
+<a id="nestedatt--application_config--private_networking"></a>
+### Nested Schema for `application_config.private_networking`
+
+Optional:
+
+- `allowed_cidrs` (List of String) List of IP addresses, that should be allowed to connect to the database via private networking.
+- `enabled` (Boolean) Set to true, when private networking should be enabled.
+- `shared_subnet_cidr` (String) The subnet cidr for the shared network. Make sure this does not collide with other subnets you already use in your project.
+
+Read-Only:
+
+- `hostname` (String) DNS name of the database in the format uuid.postgresql-private.syseleven.services.
+- `ip_address` (String) Private IP address of the database. It will be 'pending' if no address has been assigned yet.
+- `shared_network_id` (String) Openstack ID of the shared network.
+- `shared_subnet_id` (String) Openstack ID of the shared subnet.
+
+
+<a id="nestedatt--application_config--public_networking"></a>
+### Nested Schema for `application_config.public_networking`
+
+Optional:
+
+- `allowed_cidrs` (List of String) List of IP addresses, that should be allowed to connect to the database via public networking.
+- `enabled` (Boolean) Set to true, when public networking should be enabled.
 
 Read-Only:
 
 - `hostname` (String) DNS name of the database in the format uuid.postgresql.syseleven.services.
-- `ip_address` (String) Public IP address of the database. It will be 'Pending' if no address has been assigned yet.
+- `ip_address` (String) Public IP address of the database. It will be 'pending' if no address has been assigned yet.
+
 
 <a id="nestedatt--application_config--recovery"></a>
 ### Nested Schema for `application_config.recovery`
@@ -134,8 +162,8 @@ Required:
 
 Optional:
 
-- `maintenance_window` (Attributes) Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
-- `remote_ips` (List of String) List of IP addresses, that should be allowed to connect to the database.
+- `maintenance_window` (Attributes) Maintenance window in UTC. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
+- `remote_ips` (List of String, Deprecated) List of IP addresses, that should be allowed to connect to the database.
 - `type` (String) Type of the service you want to create (default `database`)
 
 <a id="nestedatt--service_config--maintenance_window"></a>

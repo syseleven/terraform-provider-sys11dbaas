@@ -190,15 +190,29 @@ func (r *DatabaseResourceV2) Read(ctx context.Context, req resource.ReadRequest,
 		return
 	}
 
-	psqlDB, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading database",
-			"Could not read database UUID "+state.Uuid.ValueString()+": "+err.Error(),
-		)
+	var err error
+	var response database.PostgreSQLGetResponse
+	for {
+		response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error reading database",
+				"Could not read database, unexpected error: "+err.Error(),
+			)
+			return
+		}
+		if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(30 * time.Second)
+		}
 	}
 
-	diags = psqlGetResponseToModelV2(ctx, psqlDB, &state)
+	diags = psqlGetResponseToModelV2(ctx, response, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -385,29 +399,30 @@ func (r *DatabaseResourceV2) Create(ctx context.Context, req resource.CreateRequ
 		return
 	}
 
-	diags = psqlGetResponseToModelV2(ctx, createResponse, &plan)
-	resp.Diagnostics.Append(diags...)
-
+	var response database.PostgreSQLGetResponse
 	if r.waitForCreation.ValueBool() {
-		for createResponse.Status != database.StateReady {
+		for {
+			response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error waiting for created database",
+					"Could not create database, unexpected error: "+err.Error(),
+				)
+				return
+			}
+			if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+				break
+			}
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				time.Sleep(30 * time.Second)
 			}
-			createResponse, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Error creating database",
-					"Could not create database, unexpected error: "+err.Error(),
-				)
-				return
-			}
 		}
 	}
 
-	diags = psqlGetResponseToModelV2(ctx, createResponse, &plan)
+	diags = psqlGetResponseToModelV2(ctx, response, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -620,13 +635,25 @@ func (r *DatabaseResourceV2) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	response, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading database",
-			"Could not read database : "+plan.Uuid.ValueString()+": "+err.Error(),
-		)
-		return
+	var response database.PostgreSQLGetResponse
+	for {
+		response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error waiting for update",
+				"Could not apply requested changes to database, unexpected error: "+err.Error(),
+			)
+			return
+		}
+		if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(30 * time.Second)
+		}
 	}
 
 	diags = psqlGetResponseToModelV2(ctx, response, &plan)
@@ -645,7 +672,12 @@ func (r *DatabaseResourceV2) ImportState(ctx context.Context, req resource.Impor
 
 // Schema defines the schema for the resource.
 func (r *DatabaseResourceV2) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+	resp.Schema = v2Schema0(ctx)
+}
+
+func v2Schema0(ctx context.Context) schema.Schema {
+	return schema.Schema{
+		DeprecationMessage: "This resource will be removed in the next major version of the provider. Migrate to resource without version suffix.",
 		Attributes: map[string]schema.Attribute{
 			"application_config": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
