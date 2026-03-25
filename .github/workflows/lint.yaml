@@ -19,7 +19,7 @@ jobs:
       - name: Generate
         run: |
           go generate ./...
-          git status -s
+          git diff --quiet
   terraform:
     runs-on: ubuntu-latest
     steps:
@@ -28,7 +28,7 @@ jobs:
       - name: Format
         run: |
           terraform fmt -recursive
-          git status -s
+          git diff --quiet
       - name: Validate
         run: |
           terraform validate
