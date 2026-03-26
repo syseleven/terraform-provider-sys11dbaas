@@ -37,6 +37,7 @@ type Sys11DBaaSProviderModel struct {
 	Project         types.String `tfsdk:"project"`
 	Organization    types.String `tfsdk:"organization"`
 	WaitForCreation types.Bool   `tfsdk:"wait_for_creation"`
+	WaitForUpdate   types.Bool   `tfsdk:"wait_for_update"`
 }
 
 type sys11DBaaSProviderData struct {
@@ -44,6 +45,7 @@ type sys11DBaaSProviderData struct {
 	project         types.String `tfsdk:"project"`
 	organization    types.String `tfsdk:"organization"`
 	waitForCreation types.Bool   `tfsdk:"wait_for_creation"`
+	waitForUpdate   types.Bool   `tfsdk:"wait_for_update"`
 }
 
 func (p *Sys11DBaaSProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -79,6 +81,11 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Required:    false,
 				Optional:    true,
 				Description: "Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used. Defaults to true",
+			},
+			"wait_for_update": schema.BoolAttribute{
+				Required:    false,
+				Optional:    true,
+				Description: "Whether to wait for the service to be updated. If omitted, the `SYS11DBAAS_WAIT_FOR_UPDATE` environment variable is used. Defaults to true",
 			},
 		},
 	}
@@ -177,6 +184,14 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 		waitForCreation = config.WaitForCreation.ValueBool()
 	}
 
+	waitForUpdate := true
+	if waitForCreationEnv, set := os.LookupEnv("SYS11DBAAS_WAIT_FOR_UPDATE"); !set {
+		waitForUpdate, _ = strconv.ParseBool(waitForCreationEnv)
+	}
+	if !config.WaitForCreation.IsNull() {
+		waitForUpdate = config.WaitForCreation.ValueBool()
+	}
+
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
@@ -254,12 +269,14 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 		project:         types.StringValue(project),
 		organization:    types.StringValue(organization),
 		waitForCreation: types.BoolValue(waitForCreation),
+		waitForUpdate:   types.BoolValue(waitForUpdate),
 	}
 	resp.ResourceData = &sys11DBaaSProviderData{
 		client:          client,
 		project:         types.StringValue(project),
 		organization:    types.StringValue(organization),
 		waitForCreation: types.BoolValue(waitForCreation),
+		waitForUpdate:   types.BoolValue(waitForUpdate),
 	}
 
 	tflog.Info(ctx, "Configured Sys11DBaaS client", map[string]any{"success": true})

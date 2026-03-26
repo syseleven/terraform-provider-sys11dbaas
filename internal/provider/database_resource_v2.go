@@ -147,6 +147,7 @@ type DatabaseResourceV2 struct {
 	project         types.String
 	organization    types.String
 	waitForCreation types.Bool
+	waitForUpdate   types.Bool
 }
 
 func NewDatabaseResourceV2() resource.Resource {
@@ -178,6 +179,7 @@ func (r *DatabaseResourceV2) Configure(_ context.Context, req resource.Configure
 	r.organization = providerData.organization
 	r.project = providerData.project
 	r.waitForCreation = providerData.waitForCreation
+	r.waitForUpdate = providerData.waitForUpdate
 }
 
 // Read resource information.
@@ -620,13 +622,33 @@ func (r *DatabaseResourceV2) Update(ctx context.Context, req resource.UpdateRequ
 		return
 	}
 
-	response, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading database",
-			"Could not read database : "+plan.Uuid.ValueString()+": "+err.Error(),
-		)
-		return
+	response := database.PostgreSQLGetResponse{Status: database.StateNotReady}
+	if r.waitForUpdate.ValueBool() {
+		for response.Status != database.StateReady {
+			select {
+			case <-ctx.Done():
+				return
+			default:
+				time.Sleep(30 * time.Second)
+			}
+			response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error updating database",
+					"Could not update database, unexpected error: "+err.Error(),
+				)
+				return
+			}
+		}
+	} else {
+		response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error updating database",
+				"Could not update database, unexpected error: "+err.Error(),
+			)
+			return
+		}
 	}
 
 	diags = psqlGetResponseToModelV2(ctx, response, &plan)

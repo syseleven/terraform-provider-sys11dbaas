@@ -39,6 +39,7 @@ Additional examples can be found [here](https://github.com/syseleven/terraform-p
 - `project` (String) ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
 - `url` (String) URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de
 - `wait_for_creation` (Boolean) Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used. Defaults to true
+- `wait_for_update` (Boolean) Whether to wait for the service to be updated. If omitted, the `SYS11DBAAS_WAIT_FOR_UPDATE` environment variable is used. Defaults to true
 
 ## Debug logging
 
