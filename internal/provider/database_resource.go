@@ -5,14 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
-	"strings"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
 	"github.com/hashicorp/terraform-plugin-framework/diag"
+	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/booldefault"
@@ -28,60 +29,166 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-framework/types/basetypes"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
-	database "github.com/syseleven/sys11dbaas-sdk/database/v1"
+	database "github.com/syseleven/sys11dbaas-sdk/database/v2"
 )
 
-const CREATE_RETRY_LIMIT = 30 * time.Minute
+const resourceSynced = "Synced"
 
-type ApplicationConfigModelV1 struct {
-	Hostname              basetypes.StringValue `tfsdk:"hostname"`
-	Instances             basetypes.Int64Value  `tfsdk:"instances"`
-	IpAddress             basetypes.StringValue `tfsdk:"ip_address"`
-	Password              basetypes.StringValue `tfsdk:"password"`
-	Recovery              basetypes.ObjectValue `tfsdk:"recovery"`
-	ScheduledBackups      basetypes.ObjectValue `tfsdk:"scheduled_backups"`
-	ApplicationConfigType basetypes.StringValue `tfsdk:"type"`
-	Version               basetypes.StringValue `tfsdk:"version"`
+type MaintenanceWindowModel struct {
+	DayOfWeek   types.Int64 `tfsdk:"day_of_week"`
+	StartHour   types.Int64 `tfsdk:"start_hour"`
+	StartMinute types.Int64 `tfsdk:"start_minute"`
 }
 
-func (m ApplicationConfigModelV1) AttributeTypes() map[string]attr.Type {
+func (m MaintenanceWindowModel) AttributeTypes() map[string]attr.Type {
 	return map[string]attr.Type{
+		"day_of_week":  types.Int64Type,
+		"start_hour":   types.Int64Type,
+		"start_minute": types.Int64Type,
+	}
+}
+
+type ScheduleModel struct {
+	Hour   types.Int64 `tfsdk:"hour"`
+	Minute types.Int64 `tfsdk:"minute"`
+}
+
+func (m ScheduleModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"hour":   types.Int64Type,
+		"minute": types.Int64Type,
+	}
+}
+
+type ScheduledBackupsModel struct {
+	Retention types.Int64  `tfsdk:"retention"`
+	Schedule  types.Object `tfsdk:"schedule"`
+}
+
+func (m ScheduledBackupsModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"retention": types.Int64Type,
+		"schedule": types.ObjectType{
+			AttrTypes: ScheduleModel{}.AttributeTypes(),
+		},
+	}
+}
+
+type RecoveryModel struct {
+	Exclusive  types.Bool   `tfsdk:"exclusive"`
+	Source     types.String `tfsdk:"source"`
+	TargetLsn  types.String `tfsdk:"target_lsn"`
+	TargetName types.String `tfsdk:"target_name"`
+	TargetTime types.String `tfsdk:"target_time"`
+	TargetXid  types.String `tfsdk:"target_xid"`
+}
+
+func (m RecoveryModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"exclusive":   types.BoolType,
+		"source":      types.StringType,
+		"target_lsn":  types.StringType,
+		"target_name": types.StringType,
+		"target_time": types.StringType,
+		"target_xid":  types.StringType,
+	}
+}
+
+type PublicNetworkingModel struct {
+	Enabled      types.Bool   `tfsdk:"enabled"`
+	AllowedCIDRs types.List   `tfsdk:"allowed_cidrs"`
+	Hostname     types.String `tfsdk:"hostname"`
+	IPAddress    types.String `tfsdk:"ip_address"`
+}
+
+func (m PublicNetworkingModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+		"allowed_cidrs": types.ListType{
+			ElemType: types.StringType,
+		},
 		"hostname":   types.StringType,
-		"instances":  types.Int64Type,
 		"ip_address": types.StringType,
-		"password":   types.StringType,
+	}
+}
+
+type PrivateNetworkingModel struct {
+	Enabled          types.Bool   `tfsdk:"enabled"`
+	AllowedCIDRs     types.List   `tfsdk:"allowed_cidrs"`
+	SharedSubnetCIDR types.String `tfsdk:"shared_subnet_cidr"`
+	Hostname         types.String `tfsdk:"hostname"`
+	IPAddress        types.String `tfsdk:"ip_address"`
+	SharedSubnetID   types.String `tfsdk:"shared_subnet_id"`
+	SharedNetworkID  types.String `tfsdk:"shared_network_id"`
+}
+
+func (m PrivateNetworkingModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"enabled": types.BoolType,
+		"allowed_cidrs": types.ListType{
+			ElemType: types.StringType,
+		},
+		"shared_subnet_cidr": types.StringType,
+		"hostname":           types.StringType,
+		"ip_address":         types.StringType,
+		"shared_subnet_id":   types.StringType,
+		"shared_network_id":  types.StringType,
+	}
+}
+
+type ApplicationConfigModel struct {
+	Instances             types.Int64  `tfsdk:"instances"`
+	Password              types.String `tfsdk:"password"`
+	Recovery              types.Object `tfsdk:"recovery"`
+	ScheduledBackups      types.Object `tfsdk:"scheduled_backups"`
+	PrivateNetworking     types.Object `tfsdk:"private_networking"`
+	PublicNetworking      types.Object `tfsdk:"public_networking"`
+	ApplicationConfigType types.String `tfsdk:"type"`
+	Version               types.String `tfsdk:"version"`
+}
+
+func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"instances": types.Int64Type,
+		"password":  types.StringType,
 		"recovery": types.ObjectType{
 			AttrTypes: RecoveryModel{}.AttributeTypes(),
 		},
 		"scheduled_backups": types.ObjectType{
 			AttrTypes: ScheduledBackupsModel{}.AttributeTypes(),
 		},
+		"private_networking": types.ObjectType{
+			AttrTypes: PrivateNetworkingModel{}.AttributeTypes(),
+		},
+		"public_networking": types.ObjectType{
+			AttrTypes: PublicNetworkingModel{}.AttributeTypes(),
+		},
 		"type":    types.StringType,
 		"version": types.StringType,
 	}
 }
 
-type ServiceConfigModelV1 struct {
-	Disksize          basetypes.Int64Value  `tfsdk:"disksize"`
-	Flavor            basetypes.StringValue `tfsdk:"flavor"`
-	MaintenanceWindow basetypes.ObjectValue `tfsdk:"maintenance_window"`
-	Region            basetypes.StringValue `tfsdk:"region"`
-	RemoteIps         basetypes.ListValue   `tfsdk:"remote_ips"`
-	ServiceConfigType basetypes.StringValue `tfsdk:"type"`
+type ServiceConfigModel struct {
+	Disksize          types.Int64         `tfsdk:"disksize"`
+	Flavor            types.String        `tfsdk:"flavor"`
+	MaintenanceWindow types.Object        `tfsdk:"maintenance_window"`
+	Region            types.String        `tfsdk:"region"`
+	RemoteIps         basetypes.ListValue `tfsdk:"remote_ips"`
+	ServiceConfigType types.String        `tfsdk:"type"`
 }
 
-func (m ServiceConfigModelV1) AttributeTypes() map[string]attr.Type {
+func (m ServiceConfigModel) AttributeTypes() map[string]attr.Type {
 	return map[string]attr.Type{
 		"disksize": types.Int64Type,
 		"flavor":   types.StringType,
 		"maintenance_window": types.ObjectType{
 			AttrTypes: MaintenanceWindowModel{}.AttributeTypes(),
 		},
-		"region": types.StringType,
 		"remote_ips": types.ListType{
 			ElemType: types.StringType,
 		},
-		"type": types.StringType,
+		"region": types.StringType,
+		"type":   types.StringType,
 	}
 }
 
@@ -134,10 +241,25 @@ func (r *DatabaseResource) Configure(_ context.Context, req resource.ConfigureRe
 		return
 	}
 
-	r.client = providerData.client.V1()
+	r.client = providerData.client.V2()
 	r.organization = providerData.organization
 	r.project = providerData.project
 	r.waitForCreation = providerData.waitForCreation
+}
+
+func (r DatabaseResource) ConfigValidators(ctx context.Context) []resource.ConfigValidator {
+	return []resource.ConfigValidator{
+		resourcevalidator.AtLeastOneOf(
+			path.MatchRoot("application_config").AtName("public_networking"),
+			path.MatchRoot("application_config").AtName("private_networking"),
+			path.MatchRoot("service_config").AtName("remote_ips"),
+		),
+		resourcevalidator.Conflicting(
+			path.MatchRoot("service_config").AtName("remote_ips"),
+
+			path.MatchRoot("application_config").AtName("public_networking"),
+		),
+	}
 }
 
 // Read resource information.
@@ -150,18 +272,29 @@ func (r *DatabaseResource) Read(ctx context.Context, req resource.ReadRequest, r
 		return
 	}
 
-	psqlDB, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Unable to Read database",
-			err.Error(),
-		)
-		return
+	var err error
+	var response database.PostgreSQLGetResponse
+	for {
+		response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error reading database",
+				"Could not read database, unexpected error: "+err.Error(),
+			)
+			return
+		}
+		if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(30 * time.Second)
+		}
 	}
 
-	diags = psqlGetResponseToModel(ctx, psqlDB, &state)
-	ctx = tflog.SetField(ctx, "read_target_state", state)
-	tflog.Debug(ctx, "Reading database", nil)
+	diags = psqlGetResponseToModel(ctx, response, &state)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -182,11 +315,67 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	var applicationConfig ApplicationConfigModelV1
+	var applicationConfig ApplicationConfigModel
 	diags = plan.ApplicationConfig.As(ctx, &applicationConfig, basetypes.ObjectAsOptions{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	var privateNetworking *database.PostgreSQLPrivateNetworking
+	if !applicationConfig.PrivateNetworking.IsNull() && !applicationConfig.PrivateNetworking.IsUnknown() {
+		var privateNetworkingModel PrivateNetworkingModel
+		diags = applicationConfig.PrivateNetworking.As(ctx, &privateNetworkingModel, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		var privateAllowedCidrs []string
+		if !privateNetworkingModel.AllowedCIDRs.IsNull() && !privateNetworkingModel.AllowedCIDRs.IsUnknown() {
+			diags = privateNetworkingModel.AllowedCIDRs.ElementsAs(ctx, &privateAllowedCidrs, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		}
+
+		privateNetworking = &database.PostgreSQLPrivateNetworking{
+			AllowedCidrs:     &privateAllowedCidrs,
+			Enabled:          privateNetworkingModel.Enabled.ValueBoolPointer(),
+			Hostname:         privateNetworkingModel.Hostname.ValueStringPointer(),
+			IpAddress:        privateNetworkingModel.IPAddress.ValueStringPointer(),
+			SharedNetworkId:  privateNetworkingModel.SharedNetworkID.ValueStringPointer(),
+			SharedSubnetCidr: privateNetworkingModel.SharedSubnetCIDR.ValueStringPointer(),
+			SharedSubnetId:   privateNetworkingModel.SharedSubnetID.ValueStringPointer(),
+		}
+	}
+
+	var publicNetworking *database.PostgreSQLPublicNetworking
+	tflog.Debug(ctx, "trying to create with public networking set to", map[string]any{"public_networking": applicationConfig.PublicNetworking})
+	if !applicationConfig.PublicNetworking.IsNull() && !applicationConfig.PublicNetworking.IsUnknown() {
+		var publicNetworkingModel PublicNetworkingModel
+		diags = applicationConfig.PublicNetworking.As(ctx, &publicNetworkingModel, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		var publicAllowedCidrs []string
+		if !publicNetworkingModel.AllowedCIDRs.IsNull() && !publicNetworkingModel.AllowedCIDRs.IsUnknown() {
+			diags = publicNetworkingModel.AllowedCIDRs.ElementsAs(ctx, &publicAllowedCidrs, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+		}
+
+		publicNetworking = &database.PostgreSQLPublicNetworking{
+			AllowedCidrs: &publicAllowedCidrs,
+			Enabled:      publicNetworkingModel.Enabled.ValueBoolPointer(),
+			Hostname:     publicNetworkingModel.Hostname.ValueStringPointer(),
+			IpAddress:    publicNetworkingModel.IPAddress.ValueStringPointer(),
+		}
 	}
 
 	var scheduledBackups *database.PostgreSQLBackupSchedule
@@ -209,6 +398,27 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 				Hour:   schedule.Hour.ValueInt64Pointer(),
 				Minute: schedule.Minute.ValueInt64Pointer(),
 			},
+		}
+	}
+
+	var serviceConfig ServiceConfigModel
+	resp.Diagnostics.Append(plan.ServiceConfig.As(ctx, &serviceConfig, basetypes.ObjectAsOptions{})...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	var maintenanceWindow *database.PostgreSQLMaintenance
+	if !serviceConfig.MaintenanceWindow.IsUnknown() {
+		var maintenanceWindowModel MaintenanceWindowModel
+		resp.Diagnostics.Append(serviceConfig.MaintenanceWindow.As(ctx, &maintenanceWindowModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		maintenanceWindow = &database.PostgreSQLMaintenance{
+			DayOfWeek:   maintenanceWindowModel.DayOfWeek.ValueInt64Pointer(),
+			StartHour:   maintenanceWindowModel.StartHour.ValueInt64Pointer(),
+			StartMinute: maintenanceWindowModel.StartMinute.ValueInt64Pointer(),
 		}
 	}
 
@@ -236,53 +446,25 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		}
 	}
 
-	var serviceConfig ServiceConfigModelV1
-	resp.Diagnostics.Append(plan.ServiceConfig.As(ctx, &serviceConfig, basetypes.ObjectAsOptions{})...)
-	if resp.Diagnostics.HasError() {
-		return
-	}
-
-	var remoteIps []string
-	if !serviceConfig.RemoteIps.IsNull() && !serviceConfig.RemoteIps.IsUnknown() {
-		resp.Diagnostics.Append(serviceConfig.RemoteIps.ElementsAs(ctx, &remoteIps, false)...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-	}
-
-	var maintenanceWindow *database.PostgreSQLMaintenance
-	if !serviceConfig.MaintenanceWindow.IsUnknown() {
-		var maintenanceWindowModel MaintenanceWindowModel
-		resp.Diagnostics.Append(serviceConfig.MaintenanceWindow.As(ctx, &maintenanceWindowModel, basetypes.ObjectAsOptions{})...)
-		if resp.Diagnostics.HasError() {
-			return
-		}
-
-		maintenanceWindow = &database.PostgreSQLMaintenance{
-			DayOfWeek:   maintenanceWindowModel.DayOfWeek.ValueInt64Pointer(),
-			StartHour:   maintenanceWindowModel.StartHour.ValueInt64Pointer(),
-			StartMinute: maintenanceWindowModel.StartMinute.ValueInt64Pointer(),
-		}
-	}
-
-	createRequest := database.PostgreSQLCreateRequestV1{
+	createRequest := database.PostgreSQLCreateRequest{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueStringPointer(),
-		ServiceConfig: database.PostgreSQLServiceConfigV1{
+		ServiceConfig: database.PostgreSQLServiceConfig{
 			Disksize:          serviceConfig.Disksize.ValueInt64Pointer(),
 			Type:              serviceConfig.ServiceConfigType.ValueString(),
 			Flavor:            serviceConfig.Flavor.ValueString(),
 			Region:            serviceConfig.Region.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIps:         &remoteIps,
 		},
-		ApplicationConfig: database.PostgreSQLApplicationConfigV1{
-			Type:             applicationConfig.ApplicationConfigType.ValueString(),
-			Password:         applicationConfig.Password.ValueString(),
-			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
-			Version:          applicationConfig.Version.ValueString(),
-			ScheduledBackups: scheduledBackups,
-			Recovery:         recovery,
+		ApplicationConfig: database.PostgreSQLApplicationConfig{
+			Type:              applicationConfig.ApplicationConfigType.ValueString(),
+			Password:          applicationConfig.Password.ValueString(),
+			Instances:         applicationConfig.Instances.ValueInt64Pointer(),
+			Version:           applicationConfig.Version.ValueString(),
+			ScheduledBackups:  scheduledBackups,
+			PrivateNetworking: privateNetworking,
+			PublicNetworking:  publicNetworking,
+			Recovery:          recovery,
 		},
 	}
 
@@ -299,29 +481,30 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		return
 	}
 
-	// Map response body to schema and populate Computed attribute values
-	diags = psqlGetResponseToModel(ctx, createResponse, &plan)
-
+	var response database.PostgreSQLGetResponse
 	if r.waitForCreation.ValueBool() {
-		for createResponse.Status != database.StateReady {
+		for {
+			response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
+			if err != nil {
+				resp.Diagnostics.AddError(
+					"Error waiting for created database",
+					"Could not create database, unexpected error: "+err.Error(),
+				)
+				return
+			}
+			if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+				break
+			}
 			select {
 			case <-ctx.Done():
 				return
 			default:
 				time.Sleep(30 * time.Second)
 			}
-			createResponse, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), createResponse.Uuid)
-			if err != nil {
-				resp.Diagnostics.AddError(
-					"Error read database during wait",
-					"Could not read database during wait, unexpected error: "+err.Error(),
-				)
-				return
-			}
 		}
 	}
 
-	diags = psqlGetResponseToModel(ctx, createResponse, &plan)
+	diags = psqlGetResponseToModel(ctx, response, &plan)
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
@@ -344,14 +527,11 @@ func (r *DatabaseResource) Delete(ctx context.Context, req resource.DeleteReques
 	_, err := r.client.DeletePostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), state.Uuid.ValueString())
 	if err != nil {
 		resp.Diagnostics.AddError(
-			"Unable to Delete Database",
+			"Unable to delete Database",
 			err.Error(),
 		)
 		return
 	}
-
-	// Set refreshed state
-	resp.State.RemoveResource(ctx)
 }
 
 // Update resource.
@@ -364,11 +544,73 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	var applicationConfig ApplicationConfigModelV1
+	var applicationConfig ApplicationConfigModel
 	diags = plan.ApplicationConfig.As(ctx, &applicationConfig, basetypes.ObjectAsOptions{})
 	resp.Diagnostics.Append(diags...)
 	if resp.Diagnostics.HasError() {
 		return
+	}
+
+	var privateNetworking *database.PostgreSQLPrivateNetworking
+	if !applicationConfig.PrivateNetworking.IsUnknown() {
+		var privateNetworkingModel PrivateNetworkingModel
+		diags = applicationConfig.PrivateNetworking.As(ctx, &privateNetworkingModel, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		privateNetworking = &database.PostgreSQLPrivateNetworking{
+			Enabled:          privateNetworkingModel.Enabled.ValueBoolPointer(),
+			Hostname:         privateNetworkingModel.Hostname.ValueStringPointer(),
+			IpAddress:        privateNetworkingModel.IPAddress.ValueStringPointer(),
+			SharedNetworkId:  privateNetworkingModel.SharedNetworkID.ValueStringPointer(),
+			SharedSubnetCidr: privateNetworkingModel.SharedSubnetCIDR.ValueStringPointer(),
+			SharedSubnetId:   privateNetworkingModel.SharedSubnetID.ValueStringPointer(),
+		}
+
+		if !privateNetworkingModel.AllowedCIDRs.IsNull() && !privateNetworkingModel.AllowedCIDRs.IsUnknown() {
+			var privateAllowedCidrs []string
+			diags = privateNetworkingModel.AllowedCIDRs.ElementsAs(ctx, &privateAllowedCidrs, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			if len(privateAllowedCidrs) > 0 {
+				privateNetworking.AllowedCidrs = &privateAllowedCidrs
+			}
+		}
+
+	}
+
+	var publicNetworking *database.PostgreSQLPublicNetworking
+	if !applicationConfig.PublicNetworking.IsUnknown() {
+		var publicNetworkingModel PublicNetworkingModel
+		diags = applicationConfig.PublicNetworking.As(ctx, &publicNetworkingModel, basetypes.ObjectAsOptions{})
+		resp.Diagnostics.Append(diags...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		publicNetworking = &database.PostgreSQLPublicNetworking{
+			Enabled:   publicNetworkingModel.Enabled.ValueBoolPointer(),
+			Hostname:  publicNetworkingModel.Hostname.ValueStringPointer(),
+			IpAddress: publicNetworkingModel.IPAddress.ValueStringPointer(),
+		}
+
+		if !publicNetworkingModel.AllowedCIDRs.IsNull() && !publicNetworkingModel.AllowedCIDRs.IsUnknown() {
+			var publicAllowedCidrs []string
+			diags = publicNetworkingModel.AllowedCIDRs.ElementsAs(ctx, &publicAllowedCidrs, false)
+			resp.Diagnostics.Append(diags...)
+			if resp.Diagnostics.HasError() {
+				return
+			}
+
+			if len(publicAllowedCidrs) > 0 {
+				publicNetworking.AllowedCidrs = &publicAllowedCidrs
+			}
+		}
 	}
 
 	var scheduledBackups *database.PostgreSQLBackupSchedule
@@ -418,15 +660,10 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
-	var serviceConfig ServiceConfigModelV1
+	var serviceConfig ServiceConfigModel
 	resp.Diagnostics.Append(plan.ServiceConfig.As(ctx, &serviceConfig, basetypes.ObjectAsOptions{})...)
 	if resp.Diagnostics.HasError() {
 		return
-	}
-
-	var remoteIps []string
-	for _, e := range serviceConfig.RemoteIps.Elements() {
-		remoteIps = append(remoteIps, strings.Trim(e.String(), "\""))
 	}
 
 	var maintenanceWindow *database.PostgreSQLMaintenance
@@ -444,24 +681,25 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
-	updateRequest := database.PostgreSQLUpdateRequestV1{
+	updateRequest := database.PostgreSQLCreateRequest{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueStringPointer(),
-		ServiceConfig: database.PostgreSQLServiceConfigV1{
+		ServiceConfig: database.PostgreSQLServiceConfig{
 			Disksize:          serviceConfig.Disksize.ValueInt64Pointer(),
 			Type:              serviceConfig.ServiceConfigType.ValueString(),
 			Flavor:            serviceConfig.Flavor.ValueString(),
 			Region:            serviceConfig.Region.ValueString(),
 			MaintenanceWindow: maintenanceWindow,
-			RemoteIps:         &remoteIps,
 		},
-		ApplicationConfig: database.PostgreSQLApplicationConfigV1{
-			Type:             applicationConfig.ApplicationConfigType.ValueString(),
-			Password:         applicationConfig.Password.ValueString(),
-			Instances:        applicationConfig.Instances.ValueInt64Pointer(),
-			Version:          applicationConfig.Version.ValueString(),
-			ScheduledBackups: scheduledBackups,
-			Recovery:         recovery,
+		ApplicationConfig: database.PostgreSQLApplicationConfig{
+			Type:              applicationConfig.ApplicationConfigType.ValueString(),
+			Password:          applicationConfig.Password.ValueString(),
+			Instances:         applicationConfig.Instances.ValueInt64Pointer(),
+			Version:           applicationConfig.Version.ValueString(),
+			ScheduledBackups:  scheduledBackups,
+			PrivateNetworking: privateNetworking,
+			PublicNetworking:  publicNetworking,
+			Recovery:          recovery,
 		},
 	}
 
@@ -479,14 +717,25 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		return
 	}
 
-	// Update psql
-	response, err := r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
-	if err != nil {
-		resp.Diagnostics.AddError(
-			"Error reading updated database",
-			"Could not read updated database, unexpected error: "+err.Error(),
-		)
-		return
+	var response database.PostgreSQLGetResponse
+	for {
+		response, err = r.client.GetPostgreSQL(ctx, r.organization.ValueString(), r.project.ValueString(), plan.Uuid.ValueString())
+		if err != nil {
+			resp.Diagnostics.AddError(
+				"Error waiting for update",
+				"Could not apply requested changes to database, unexpected error: "+err.Error(),
+			)
+			return
+		}
+		if response.Status == database.StateReady && response.ResourceStatus == resourceSynced {
+			break
+		}
+		select {
+		case <-ctx.Done():
+			return
+		default:
+			time.Sleep(30 * time.Second)
+		}
 	}
 
 	diags = psqlGetResponseToModel(ctx, response, &plan)
@@ -499,31 +748,91 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 	resp.Diagnostics.Append(diags...)
 }
 
+func (r *DatabaseResource) ImportState(ctx context.Context, req resource.ImportStateRequest, resp *resource.ImportStateResponse) {
+	resource.ImportStatePassthroughID(ctx, path.Root("uuid"), req, resp)
+}
+
 // Schema defines the schema for the resource.
 func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest, resp *resource.SchemaResponse) {
-	resp.Schema = schema.Schema{
+	resp.Schema = schemaV0(ctx)
+}
+
+func (r *DatabaseResource) MoveState(ctx context.Context) []resource.StateMover {
+	resourceV2Schema0 := v2Schema0(ctx)
+	return []resource.StateMover{
+		{
+			SourceSchema: &resourceV2Schema0,
+			StateMover: func(ctx context.Context, req resource.MoveStateRequest, resp *resource.MoveStateResponse) {
+				if req.SourceTypeName != "sys11dbaas_database_v2" {
+					return
+				}
+
+				if req.SourceSchemaVersion != 0 {
+					return
+				}
+
+				var sourceStateModel DatabaseModelV2
+				resp.Diagnostics.Append(req.SourceState.Get(ctx, &sourceStateModel)...)
+
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				tflog.Debug(ctx, "State model before service config mangle", map[string]any{"state": sourceStateModel})
+
+				var sourceServiceConfig ServiceConfigModelV2
+				resp.Diagnostics.Append(sourceStateModel.ServiceConfig.As(ctx, &sourceServiceConfig, basetypes.ObjectAsOptions{})...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				var targetServiceConfig ServiceConfigModel
+				targetServiceConfig.Disksize = sourceServiceConfig.Disksize
+				targetServiceConfig.Flavor = sourceServiceConfig.Flavor
+				targetServiceConfig.MaintenanceWindow = sourceServiceConfig.MaintenanceWindow
+				targetServiceConfig.Region = sourceServiceConfig.Region
+				targetServiceConfig.RemoteIps = types.ListNull(types.StringType)
+				targetServiceConfig.ServiceConfigType = sourceServiceConfig.ServiceConfigType
+
+				var targetStateModel DatabaseModel
+
+				targetStateModel.ApplicationConfig = sourceStateModel.ApplicationConfig
+				targetStateModel.CreatedAt = sourceStateModel.CreatedAt
+				targetStateModel.CreatedBy = sourceStateModel.CreatedBy
+				targetStateModel.Description = sourceStateModel.Description
+				targetStateModel.LastModifiedAt = sourceStateModel.LastModifiedAt
+				targetStateModel.LastModifiedBy = sourceStateModel.LastModifiedBy
+				targetStateModel.Name = sourceStateModel.Name
+				var diags diag.Diagnostics
+				targetStateModel.ServiceConfig, diags = types.ObjectValueFrom(ctx, targetServiceConfig.AttributeTypes(), targetServiceConfig)
+				resp.Diagnostics.Append(diags...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+				targetStateModel.Status = sourceStateModel.Status
+				targetStateModel.Phase = sourceStateModel.Phase
+				targetStateModel.ResourceStatus = sourceStateModel.ResourceStatus
+				targetStateModel.Uuid = sourceStateModel.Uuid
+
+				tflog.Debug(ctx, "Moved state between resources", map[string]any{"state": targetStateModel})
+
+				resp.Diagnostics.Append(resp.TargetState.Set(ctx, targetStateModel)...)
+			},
+		},
+	}
+}
+
+func schemaV0(ctx context.Context) schema.Schema {
+	return schema.Schema{
+		Version: 0,
 		Attributes: map[string]schema.Attribute{
 			"application_config": schema.SingleNestedAttribute{
 				Attributes: map[string]schema.Attribute{
-					"hostname": schema.StringAttribute{
-						Computed:    true,
-						Description: "DNS name of the database in the format uuid.postgresql.syseleven.services.",
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
-						},
-					},
 					"instances": schema.Int64Attribute{
 						Required:    true,
 						Description: "Node count of the database cluster.",
 						Validators: []validator.Int64{
 							int64validator.AtMost(5),
-						},
-					},
-					"ip_address": schema.StringAttribute{
-						Computed:    true,
-						Description: "Public IP address of the database. It will be 'Pending' if no address has been assigned yet.",
-						PlanModifiers: []planmodifier.String{
-							stringplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"password": schema.StringAttribute{
@@ -638,11 +947,17 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 								Optional:    true,
 								Computed:    true,
 								Description: "Schedules for the backup policy.",
+								PlanModifiers: []planmodifier.Object{
+									objectplanmodifier.UseStateForUnknown(),
+								},
 							},
 						},
 						Optional:    true,
 						Computed:    true,
 						Description: "Scheduled backups policy for the database.",
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"type": schema.StringAttribute{
 						Required:    true,
@@ -651,6 +966,113 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 					"version": schema.StringAttribute{
 						Required:    true,
 						Description: "Minor version of PostgreSQL.",
+					},
+					"private_networking": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"enabled": schema.BoolAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Set to true, when private networking should be enabled.",
+								Default:     booldefault.StaticBool(true),
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"allowed_cidrs": schema.ListAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+								Description: "List of IP addresses, that should be allowed to connect to the database via private networking.",
+								PlanModifiers: []planmodifier.List{
+									listplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"hostname": schema.StringAttribute{
+								Computed:    true,
+								Description: "DNS name of the database in the format uuid.postgresql-private.syseleven.services.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"ip_address": schema.StringAttribute{
+								Computed:    true,
+								Description: "Private IP address of the database. It will be 'pending' if no address has been assigned yet.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"shared_subnet_cidr": schema.StringAttribute{
+								Optional:    true,
+								Computed:    true,
+								Default:     stringdefault.StaticString("10.240.0.0/24"),
+								Description: "The subnet cidr for the shared network. Make sure this does not collide with other subnets you already use in your project.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"shared_subnet_id": schema.StringAttribute{
+								Computed:    true,
+								Description: "Openstack ID of the shared subnet.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"shared_network_id": schema.StringAttribute{
+								Computed:    true,
+								Description: "Openstack ID of the shared network.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+						},
+						Optional: true,
+						Computed: true,
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseStateForUnknown(),
+						},
+					},
+					"public_networking": schema.SingleNestedAttribute{
+						Attributes: map[string]schema.Attribute{
+							"enabled": schema.BoolAttribute{
+								Optional:    true,
+								Computed:    true,
+								Description: "Set to true, when public networking should be enabled.",
+								Default:     booldefault.StaticBool(false),
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"allowed_cidrs": schema.ListAttribute{
+								ElementType: types.StringType,
+								Optional:    true,
+								Computed:    true,
+								Description: "List of IP addresses, that should be allowed to connect to the database via public networking.",
+								PlanModifiers: []planmodifier.List{
+									listplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"hostname": schema.StringAttribute{
+								Computed:    true,
+								Description: "DNS name of the database in the format uuid.postgresql.syseleven.services.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"ip_address": schema.StringAttribute{
+								Computed:    true,
+								Description: "Public IP address of the database. It will be 'pending' if no address has been assigned yet.",
+								PlanModifiers: []planmodifier.String{
+									stringplanmodifier.UseStateForUnknown(),
+								},
+							},
+						},
+						Optional:   true,
+						Computed:   true,
+						Validators: []validator.Object{},
+						PlanModifiers: []planmodifier.Object{
+							&allowedCidrModifier{},
+							objectplanmodifier.UseStateForUnknown(),
+						},
 					},
 				},
 				Required: true,
@@ -686,10 +1108,16 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 				CustomType:  timetypes.RFC3339Type{},
 				Computed:    true,
 				Description: "Date when the database was last modified.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"last_modified_by": schema.StringAttribute{
 				Computed:    true,
 				Description: "User who last changed the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"name": schema.StringAttribute{
 				Required:    true,
@@ -741,23 +1169,20 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 						},
 						Optional:    true,
 						Computed:    true,
-						Description: "Maintenance window. This will be a time window for updates and maintenance. If omitted, a random window will be generated.",
+						Description: "Maintenance window in UTC. This will be a time window for updates and maintenance. If omitted, a random window will be generated.",
 						PlanModifiers: []planmodifier.Object{
 							objectplanmodifier.UseStateForUnknown(),
 						},
 					},
+					"remote_ips": schema.ListAttribute{
+						ElementType:        types.StringType,
+						Optional:           true,
+						DeprecationMessage: "This field will be removed in the next major version. Migrate to allowed cidrs in public networking.",
+						Description:        "List of IP addresses, that should be allowed to connect to the database.",
+					},
 					"region": schema.StringAttribute{
 						Required:    true,
 						Description: "Region for the database.",
-					},
-					"remote_ips": schema.ListAttribute{
-						ElementType: types.StringType,
-						Optional:    true,
-						Computed:    true,
-						Description: "List of IP addresses, that should be allowed to connect to the database.",
-						PlanModifiers: []planmodifier.List{
-							listplanmodifier.UseStateForUnknown(),
-						},
 					},
 					"type": schema.StringAttribute{
 						Optional:    true,
@@ -771,14 +1196,23 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 			"status": schema.StringAttribute{
 				Computed:    true,
 				Description: "Overall status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"phase": schema.StringAttribute{
 				Computed:    true,
 				Description: "Detailed status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"resource_status": schema.StringAttribute{
 				Computed:    true,
 				Description: "Sync status of the database.",
+				PlanModifiers: []planmodifier.String{
+					stringplanmodifier.UseStateForUnknown(),
+				},
 			},
 			"uuid": schema.StringAttribute{
 				Computed:    true,
@@ -791,23 +1225,14 @@ func (r *DatabaseResource) Schema(ctx context.Context, _ resource.SchemaRequest,
 	}
 }
 
-func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetResponseV1, model *DatabaseModel) diag.Diagnostics {
+func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetResponse, model *DatabaseModel) diag.Diagnostics {
 	var diags diag.Diagnostics
-	var conversionDiags diag.Diagnostics
 
-	ctx = tflog.SetField(ctx, "conversion_read_source_response", db)
-	tflog.Debug(ctx, "Converting read api response")
-
-	var d diag.Diagnostics
-	remoteIps, d := types.ListValueFrom(ctx, types.StringType, db.ServiceConfig.RemoteIps)
-	diags.Append(d...)
-
-	serviceConfig := ServiceConfigModelV1{
+	serviceConfig := ServiceConfigModel{
 		Disksize:          types.Int64PointerValue(db.ServiceConfig.Disksize),
 		ServiceConfigType: types.StringValue(db.ServiceConfig.Type),
 		Flavor:            types.StringValue(db.ServiceConfig.Flavor),
 		Region:            types.StringValue(db.ServiceConfig.Region),
-		RemoteIps:         remoteIps,
 	}
 
 	if db.ServiceConfig.MaintenanceWindow != nil {
@@ -821,10 +1246,7 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		serviceConfig.MaintenanceWindow = objectValue
 	}
 
-	model.ServiceConfig, conversionDiags = types.ObjectValueFrom(ctx, serviceConfig.AttributeTypes(), serviceConfig)
-	diags.Append(conversionDiags...)
-
-	applicationConfig := ApplicationConfigModelV1{
+	applicationConfig := ApplicationConfigModel{
 		ApplicationConfigType: types.StringValue(db.ApplicationConfig.Type),
 		Instances:             types.Int64PointerValue(db.ApplicationConfig.Instances),
 		Version:               types.StringValue(db.ApplicationConfig.Version),
@@ -832,7 +1254,7 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 
 	// Extract password consistently - use plan password for create response
 	if !model.ApplicationConfig.IsNull() && !model.ApplicationConfig.IsUnknown() {
-		var planApplicationConfig ApplicationConfigModelV1
+		var planApplicationConfig ApplicationConfigModel
 		planDiags := model.ApplicationConfig.As(ctx, &planApplicationConfig, basetypes.ObjectAsOptions{})
 		diags.Append(planDiags...)
 		if diags.HasError() {
@@ -887,9 +1309,86 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		applicationConfig.Recovery = types.ObjectNull(RecoveryModel{}.AttributeTypes())
 	}
 
+	if db.ApplicationConfig.PrivateNetworking != nil {
+		tflog.Debug(ctx, "got private networking")
+		var privateAllowedCidrs types.List
+		if db.ApplicationConfig.PrivateNetworking.AllowedCidrs != nil {
+			var d diag.Diagnostics
+			privateAllowedCidrs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PrivateNetworking.AllowedCidrs)
+			diags.Append(d...)
+		} else {
+			privateAllowedCidrs = types.ListNull(types.StringType)
+		}
+
+		var sharedSubnetCIDRRead types.String
+		if db.ApplicationConfig.PrivateNetworking.SharedSubnetCidr != nil {
+			sharedSubnetCIDRRead = types.StringPointerValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetCidr)
+		} else {
+			sharedSubnetCIDRRead = types.StringNull()
+		}
+
+		privateNetworking := PrivateNetworkingModel{
+			Enabled:          types.BoolPointerValue(db.ApplicationConfig.PrivateNetworking.Enabled),
+			Hostname:         types.StringPointerValue(db.ApplicationConfig.PrivateNetworking.Hostname),
+			IPAddress:        types.StringPointerValue(db.ApplicationConfig.PrivateNetworking.IpAddress),
+			AllowedCIDRs:     privateAllowedCidrs,
+			SharedSubnetCIDR: sharedSubnetCIDRRead,
+			SharedSubnetID:   types.StringPointerValue(db.ApplicationConfig.PrivateNetworking.SharedSubnetId),
+			SharedNetworkID:  types.StringPointerValue(db.ApplicationConfig.PrivateNetworking.SharedNetworkId),
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, privateNetworking.AttributeTypes(), privateNetworking)
+		diags.Append(conversionDiags...)
+		applicationConfig.PrivateNetworking = objectValue
+	} else {
+		applicationConfig.PrivateNetworking = types.ObjectNull(PrivateNetworkingModel{}.AttributeTypes())
+	}
+
+	if db.ApplicationConfig.PublicNetworking != nil {
+		var publicAllowedCidrs types.List
+		if db.ApplicationConfig.PublicNetworking.AllowedCidrs != nil {
+			var d diag.Diagnostics
+			publicAllowedCidrs, d = types.ListValueFrom(ctx, types.StringType, db.ApplicationConfig.PublicNetworking.AllowedCidrs)
+			diags.Append(d...)
+		} else {
+			publicAllowedCidrs = types.ListNull(types.StringType)
+		}
+
+		publicNetworking := PublicNetworkingModel{
+			Enabled:      types.BoolPointerValue(db.ApplicationConfig.PublicNetworking.Enabled),
+			Hostname:     types.StringPointerValue(db.ApplicationConfig.PublicNetworking.Hostname),
+			IPAddress:    types.StringPointerValue(db.ApplicationConfig.PublicNetworking.IpAddress),
+			AllowedCIDRs: publicAllowedCidrs,
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, publicNetworking.AttributeTypes(), publicNetworking)
+		diags.Append(conversionDiags...)
+		applicationConfig.PublicNetworking = objectValue
+
+		tflog.Debug(ctx, "response contains public networking, should be wrapped into remote_ips or public_networking.allowed_cidrs")
+
+		// In case the user still provides remote ips instead of a networking block populate this in addition to public networking.
+		if !model.ServiceConfig.IsNull() {
+			var planServiceConfig ServiceConfigModel
+			planDiags := model.ServiceConfig.As(ctx, &planServiceConfig, basetypes.ObjectAsOptions{})
+			diags.Append(planDiags...)
+			if diags.HasError() {
+				return diags
+			}
+			if !planServiceConfig.RemoteIps.IsUnknown() && !planServiceConfig.RemoteIps.IsNull() {
+				tflog.Debug(ctx, "wrapping public allowed cidrs into remote_ips")
+				serviceConfig.RemoteIps = publicAllowedCidrs
+			} else {
+				serviceConfig.RemoteIps = types.ListNull(types.StringType)
+			}
+		} else {
+			serviceConfig.RemoteIps = types.ListNull(types.StringType)
+		}
+	} else {
+		applicationConfig.PublicNetworking = types.ObjectNull(PublicNetworkingModel{}.AttributeTypes())
+	}
+
 	model.Uuid = types.StringValue(db.Uuid)
 	model.Name = types.StringValue(db.Name)
-	model.Description = types.StringValue(db.Description)
+	model.Description = types.StringPointerValue(db.Description)
 	model.Status = types.StringValue(db.Status)
 	model.Phase = types.StringValue(db.Phase)
 	model.ResourceStatus = types.StringValue(db.ResourceStatus)
@@ -905,9 +1404,49 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 	var serviceConfigDiags diag.Diagnostics
 	model.ServiceConfig, serviceConfigDiags = types.ObjectValueFrom(ctx, serviceConfig.AttributeTypes(), serviceConfig)
 	diags.Append(serviceConfigDiags...)
+	if diags.HasError() {
+		return diags
+	}
 
 	ctx = tflog.SetField(ctx, "conversion_read_model", model)
 	tflog.Debug(ctx, "Converted api read response to model")
 
 	return diags
+}
+
+type allowedCidrModifier struct{}
+
+func (m *allowedCidrModifier) PlanModifyObject(ctx context.Context, req planmodifier.ObjectRequest, resp *planmodifier.ObjectResponse) {
+	var serviceConfigData ServiceConfigModel
+	resp.Diagnostics.Append(req.Plan.GetAttribute(ctx, path.Empty().AtName("service_config"), &serviceConfigData)...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	if serviceConfigData.RemoteIps.IsNull() || serviceConfigData.RemoteIps.IsUnknown() {
+		return
+	}
+
+	publicNetworking := PublicNetworkingModel{
+		Enabled:      types.BoolValue(true),
+		AllowedCIDRs: serviceConfigData.RemoteIps,
+		Hostname:     types.StringUnknown(),
+		IPAddress:    types.StringUnknown(),
+	}
+
+	objectValue, conversionDiags := types.ObjectValueFrom(ctx, publicNetworking.AttributeTypes(), publicNetworking)
+	resp.Diagnostics.Append(conversionDiags...)
+	if resp.Diagnostics.HasError() {
+		return
+	}
+
+	resp.PlanValue = objectValue
+}
+
+func (m *allowedCidrModifier) Description(context.Context) string {
+	return "Activates public_networking if legacy remote_ips is specified."
+}
+
+func (m *allowedCidrModifier) MarkdownDescription(context.Context) string {
+	return "Activates public_networking if legacy remote_ips is specified."
 }
