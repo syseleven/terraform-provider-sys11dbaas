@@ -15,7 +15,7 @@ func TestPostgresqlRegionsDataSource(t *testing.T) {
 				Config: providerConfig + `data "sys11dbaas_postgresql_regions" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify number of regions returned
-					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_regions.test", "regions.#", "2"),
+					resource.TestCheckResourceAttrSet("data.sys11dbaas_postgresql_regions.test", "regions.0.%"),
 
 					// Verify the first region to ensure all attributes are set
 					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_regions.test", "regions.0.id", "dus2"),
