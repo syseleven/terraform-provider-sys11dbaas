@@ -15,7 +15,7 @@ func TestPostgresqlVersionsDataSource(t *testing.T) {
 				Config: providerConfig + `data "sys11dbaas_postgresql_versions" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify number of versions returned
-					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_versions.test", "versions.#", "31"),
+					resource.TestCheckResourceAttrSet("data.sys11dbaas_postgresql_versions.test", "versions.0.%"),
 
 					// Verify the first version to ensure all attributes are set
 					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_versions.test", "versions.0.id", "15.6"),

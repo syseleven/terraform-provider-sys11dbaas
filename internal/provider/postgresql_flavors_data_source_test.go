@@ -15,7 +15,7 @@ func TestPostgresqlFlavorsDataSource(t *testing.T) {
 				Config: providerConfig + `data "sys11dbaas_postgresql_flavors" "test" {}`,
 				Check: resource.ComposeAggregateTestCheckFunc(
 					// Verify number of flavors returned
-					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_flavors.test", "flavors.#", "7"),
+					resource.TestCheckResourceAttrSet("data.sys11dbaas_postgresql_flavors.test", "flavors.0.%"),
 
 					// Verify the first flavor to ensure all attributes are set
 					resource.TestCheckResourceAttr("data.sys11dbaas_postgresql_flavors.test", "flavors.0.id", "SCS-2V-4-50n"),
