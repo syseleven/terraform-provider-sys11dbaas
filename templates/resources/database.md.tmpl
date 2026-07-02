@@ -14,4 +14,16 @@ description: |-
 
 {{ tffile "examples/postgresql/basic/basic.tf" }}
 
+## Features
+
+Enable optional PostgreSQL features using the
+`application_config.features` map.
+
+The available feature set may change over time. The
+example feature shown below may not exist for your deployment. Use the
+[sys11dbaas_features](/data-sources/features.html) data source to discover
+what's available.
+
+{{ tffile "examples/postgresql/features/features.tf" }}
+
 {{ .SchemaMarkdown | trimspace }}
