@@ -277,6 +277,7 @@ func (p *Sys11DBaaSProvider) DataSources(ctx context.Context) []func() datasourc
 		NewPostgresqlFlavorsDataSource,
 		NewPostgresqlRegionsDataSource,
 		NewPostgresqlVersionsDataSource,
+		NewFeaturesDataSource,
 	}
 }
 

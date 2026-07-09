@@ -348,18 +348,12 @@ func (r *DatabaseResourceV2) Create(ctx context.Context, req resource.CreateRequ
 			return
 		}
 
-		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
-			return
-		}
-
 		recovery = &database.PostgreSQLRecovery{
 			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
 			Source:     recoveryModel.Source.ValueStringPointer(),
 			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
 			TargetName: recoveryModel.TargetName.ValueStringPointer(),
-			TargetTime: &targetTime,
+			TargetTime: recoveryModel.TargetTime.ValueStringPointer(),
 			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
 		}
 	}
@@ -562,18 +556,12 @@ func (r *DatabaseResourceV2) Update(ctx context.Context, req resource.UpdateRequ
 			return
 		}
 
-		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
-			return
-		}
-
 		recovery = &database.PostgreSQLRecovery{
 			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
 			Source:     recoveryModel.Source.ValueStringPointer(),
 			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
 			TargetName: recoveryModel.TargetName.ValueStringPointer(),
-			TargetTime: &targetTime,
+			TargetTime: recoveryModel.TargetTime.ValueStringPointer(),
 			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
 		}
 	}
@@ -1149,7 +1137,7 @@ func psqlGetResponseToModelV2(ctx context.Context, db database.PostgreSQLGetResp
 			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
 			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
 			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
-			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
+			TargetTime: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetTime),
 		}
 		objectValue, conversionDiags := types.ObjectValueFrom(ctx, recovery.AttributeTypes(), recovery)
 		diags.Append(conversionDiags...)

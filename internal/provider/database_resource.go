@@ -9,6 +9,7 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
 	"github.com/hashicorp/terraform-plugin-framework-validators/int64validator"
+	"github.com/hashicorp/terraform-plugin-framework-validators/mapvalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/resourcevalidator"
 	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/attr"
@@ -21,6 +22,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
+	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -145,6 +147,8 @@ type ApplicationConfigModel struct {
 	PublicNetworking      types.Object `tfsdk:"public_networking"`
 	ApplicationConfigType types.String `tfsdk:"type"`
 	Version               types.String `tfsdk:"version"`
+	Features              types.Map    `tfsdk:"features"`
+	EffectiveFeatures     types.Map    `tfsdk:"effective_features"`
 }
 
 func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
@@ -165,6 +169,12 @@ func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
 		},
 		"type":    types.StringType,
 		"version": types.StringType,
+		"features": types.MapType{
+			ElemType: types.StringType,
+		},
+		"effective_features": types.MapType{
+			ElemType: types.StringType,
+		},
 	}
 }
 
@@ -430,19 +440,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			return
 		}
 
-		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
-			return
-		}
-
 		recovery = &database.PostgreSQLRecovery{
 			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
 			Source:     recoveryModel.Source.ValueStringPointer(),
 			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
 			TargetName: recoveryModel.TargetName.ValueStringPointer(),
-			TargetTime: &targetTime,
+			TargetTime: recoveryModel.TargetTime.ValueStringPointer(),
 			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
+		}
+	}
+
+	var features *map[string]database.PostgreSQLApplicationConfigFeatures
+	if !applicationConfig.Features.IsUnknown() && !applicationConfig.Features.IsNull() {
+		resp.Diagnostics.Append(applicationConfig.Features.ElementsAs(ctx, &features, false)...)
+		if resp.Diagnostics.HasError() {
+			return
 		}
 	}
 
@@ -465,6 +477,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			PrivateNetworking: privateNetworking,
 			PublicNetworking:  publicNetworking,
 			Recovery:          recovery,
+			Features:          features,
 		},
 	}
 
@@ -644,18 +657,12 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 			return
 		}
 
-		targetTime, err := time.Parse(time.RFC3339, recoveryModel.TargetTime.ValueString())
-		if err != nil {
-			resp.Diagnostics.AddError("failed to parse recovery time", "Parsing recovery target time into RFC339 time failed")
-			return
-		}
-
 		recovery = &database.PostgreSQLRecovery{
 			Exclusive:  recoveryModel.Exclusive.ValueBoolPointer(),
 			Source:     recoveryModel.Source.ValueStringPointer(),
 			TargetLsn:  recoveryModel.TargetLsn.ValueStringPointer(),
 			TargetName: recoveryModel.TargetName.ValueStringPointer(),
-			TargetTime: &targetTime,
+			TargetTime: recoveryModel.TargetTime.ValueStringPointer(),
 			TargetXid:  recoveryModel.TargetXid.ValueStringPointer(),
 		}
 	}
@@ -681,6 +688,14 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
+	var features *map[string]database.PostgreSQLApplicationConfigFeatures
+	if !applicationConfig.Features.IsUnknown() && !applicationConfig.Features.IsNull() {
+		resp.Diagnostics.Append(applicationConfig.Features.ElementsAs(ctx, &features, false)...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+	}
+
 	updateRequest := database.PostgreSQLCreateRequest{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueStringPointer(),
@@ -700,6 +715,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 			PrivateNetworking: privateNetworking,
 			PublicNetworking:  publicNetworking,
 			Recovery:          recovery,
+			Features:          features,
 		},
 	}
 
@@ -796,14 +812,39 @@ func (r *DatabaseResource) MoveState(ctx context.Context) []resource.StateMover 
 
 				var targetStateModel DatabaseModel
 
-				targetStateModel.ApplicationConfig = sourceStateModel.ApplicationConfig
 				targetStateModel.CreatedAt = sourceStateModel.CreatedAt
 				targetStateModel.CreatedBy = sourceStateModel.CreatedBy
 				targetStateModel.Description = sourceStateModel.Description
 				targetStateModel.LastModifiedAt = sourceStateModel.LastModifiedAt
 				targetStateModel.LastModifiedBy = sourceStateModel.LastModifiedBy
 				targetStateModel.Name = sourceStateModel.Name
+
+				var sourceApplicationConfig ApplicationConfigModelV2
+				resp.Diagnostics.Append(sourceStateModel.ApplicationConfig.As(ctx, &sourceApplicationConfig, basetypes.ObjectAsOptions{})...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
+				var targetApplicationConfig ApplicationConfigModel
+
+				targetApplicationConfig.Instances = sourceApplicationConfig.Instances
+				targetApplicationConfig.Password = sourceApplicationConfig.Password
+				targetApplicationConfig.Recovery = sourceApplicationConfig.Recovery
+				targetApplicationConfig.ScheduledBackups = sourceApplicationConfig.ScheduledBackups
+				targetApplicationConfig.PrivateNetworking = sourceApplicationConfig.PrivateNetworking
+				targetApplicationConfig.PublicNetworking = sourceApplicationConfig.PublicNetworking
+				targetApplicationConfig.ApplicationConfigType = sourceApplicationConfig.ApplicationConfigType
+				targetApplicationConfig.Version = sourceApplicationConfig.Version
+				targetApplicationConfig.Features = types.MapNull(types.StringType)
+				targetApplicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
+
 				var diags diag.Diagnostics
+				targetStateModel.ApplicationConfig, diags = types.ObjectValueFrom(ctx, targetApplicationConfig.AttributeTypes(), targetApplicationConfig)
+				resp.Diagnostics.Append(diags...)
+				if resp.Diagnostics.HasError() {
+					return
+				}
+
 				targetStateModel.ServiceConfig, diags = types.ObjectValueFrom(ctx, targetServiceConfig.AttributeTypes(), targetServiceConfig)
 				resp.Diagnostics.Append(diags...)
 				if resp.Diagnostics.HasError() {
@@ -966,6 +1007,25 @@ func schemaV0(ctx context.Context) schema.Schema {
 					"version": schema.StringAttribute{
 						Required:    true,
 						Description: "Minor version of PostgreSQL.",
+					},
+					"features": schema.MapAttribute{
+						ElementType: types.StringType,
+						Optional:    true,
+						Description: "Feature for PostgreSQL database.",
+						Validators: []validator.Map{
+							mapvalidator.ValueStringsAre(stringvalidator.OneOf("on", "off")),
+						},
+					},
+					"effective_features": schema.MapAttribute{
+						ElementType: types.StringType,
+						Computed:    true,
+						Description: "The applied feature state for an individual instance of a database.",
+						Validators: []validator.Map{
+							mapvalidator.ValueStringsAre(stringvalidator.OneOf("on", "off")),
+						},
+						PlanModifiers: []planmodifier.Map{
+							mapplanmodifier.UseStateForUnknown(),
+						},
 					},
 					"private_networking": schema.SingleNestedAttribute{
 						Attributes: map[string]schema.Attribute{
@@ -1246,31 +1306,18 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		serviceConfig.MaintenanceWindow = objectValue
 	}
 
-	applicationConfig := ApplicationConfigModel{
-		ApplicationConfigType: types.StringValue(db.ApplicationConfig.Type),
-		Instances:             types.Int64PointerValue(db.ApplicationConfig.Instances),
-		Version:               types.StringValue(db.ApplicationConfig.Version),
-	}
-
-	// Extract password consistently - use plan password for create response
+	applicationConfig := ApplicationConfigModel{}
 	if !model.ApplicationConfig.IsNull() && !model.ApplicationConfig.IsUnknown() {
-		var planApplicationConfig ApplicationConfigModel
-		planDiags := model.ApplicationConfig.As(ctx, &planApplicationConfig, basetypes.ObjectAsOptions{})
-		diags.Append(planDiags...)
+		diags.Append(model.ApplicationConfig.As(ctx, &applicationConfig, basetypes.ObjectAsOptions{})...)
 		if diags.HasError() {
 			return diags
 		}
-
-		if !planApplicationConfig.Password.IsNull() && !planApplicationConfig.Password.IsUnknown() {
-			passwordValue, passwordDiags := planApplicationConfig.Password.ToStringValue(ctx)
-			diags.Append(passwordDiags...)
-			if diags.HasError() {
-				return diags
-			}
-			applicationConfig.Password = passwordValue
-		} else {
-			applicationConfig.Password = types.StringNull()
-		}
+	} else {
+		applicationConfig.Features = types.MapNull(types.StringType)
+		applicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
+		applicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
+		applicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
+		applicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
 	}
 
 	if db.ApplicationConfig.ScheduledBackups != nil && db.ApplicationConfig.ScheduledBackups.Schedule != nil {
@@ -1300,7 +1347,7 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
 			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
 			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
-			TargetTime: types.StringValue(db.ApplicationConfig.Recovery.TargetTime.Format(time.RFC3339)),
+			TargetTime: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetTime),
 		}
 		objectValue, conversionDiags := types.ObjectValueFrom(ctx, recovery.AttributeTypes(), recovery)
 		diags.Append(conversionDiags...)
@@ -1384,6 +1431,14 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		}
 	} else {
 		applicationConfig.PublicNetworking = types.ObjectNull(PublicNetworkingModel{}.AttributeTypes())
+	}
+
+	if db.ApplicationConfig.Features != nil {
+		var conversionDiags []diag.Diagnostic
+		applicationConfig.EffectiveFeatures, conversionDiags = types.MapValueFrom(ctx, types.StringType, *db.ApplicationConfig.Features)
+		diags.Append(conversionDiags...)
+	} else {
+		applicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
 	}
 
 	model.Uuid = types.StringValue(db.Uuid)
