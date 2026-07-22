@@ -1,8 +1,6 @@
 # CHANGELOG
 
-## 1.0.0 (Unreleased)
-
-## 0.4.0
+## 0.4.0 (Unreleased)
 
 ### NOTES
 
@@ -19,7 +17,7 @@ moved {
 
 * new data source `sys11dbaas_postgresql_flavors`, `sys11dbaas_postgresql_regions`, `sys11dbaas_postgresql_versions` ([#12](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/12))
 * new data source `sys11dbaas_features` for discovering available feature toggles ([#41](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/41))
-* `sys11dbaas_database` now supports `application_config.features` and `application_config.effective_features` for enabling feature toggles ([#41](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/41))
+* `sys11dbaas_database` now supports `application_config.features` for enabling feature toggles ([#41](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/41))
 * `sys11dbaas_database` can now be imported by UUID ([#17](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/17))
 * MoveState support for automatic migration from `sys11dbaas_database_v2` via Terraform's `moved` block ([#17](https://github.com/syseleven/terraform-provider-sys11dbaas/pull/17))
 * new example for private networking ([d958e4d](https://github.com/syseleven/terraform-provider-sys11dbaas/commit/d958e4df83edaaa68efccadf28f4e7fb9d8bf785))

@@ -207,6 +207,8 @@ github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu
 github.com/stretchr/testify v1.11.1/go.mod h1:wZwfW3scLgRK+23gO65QZefKpKQRnfz6sD981Nm4B6U=
 github.com/syseleven/sys11dbaas-sdk v0.0.0-20260701114948-a9d1b34322e3 h1:TvFE5D2PSaiOSinhKpPposqwL714XXsziLVJsw5tW0U=
 github.com/syseleven/sys11dbaas-sdk v0.0.0-20260701114948-a9d1b34322e3/go.mod h1:av03fhyDO6COWvWhiSqSG5963kgn0G/4YwAmURLbUEQ=
+github.com/syseleven/sys11dbaas-sdk v0.0.0-20260722090653-26da212c31b3 h1:pB1YPlMgGRhTCzqOia6r3IVoqyHRgZz2Y7+PpTloVYQ=
+github.com/syseleven/sys11dbaas-sdk v0.0.0-20260722090653-26da212c31b3/go.mod h1:av03fhyDO6COWvWhiSqSG5963kgn0G/4YwAmURLbUEQ=
 github.com/vmihailenco/msgpack v3.3.3+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
 github.com/vmihailenco/msgpack v4.0.4+incompatible h1:dSLoQfGFAo3F6OoNhwUmLwVgaUXK79GlxNBwueZn0xI=
 github.com/vmihailenco/msgpack v4.0.4+incompatible/go.mod h1:fy3FlTQTDXWkZ7Bh6AcGMlsjHatGryHQYUTf1ShIgkk=
