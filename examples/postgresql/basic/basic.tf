@@ -18,16 +18,37 @@ resource "sys11dbaas_database" "postgresql" {
     instances = 1
     type      = "postgresql"
     version   = 17.5
-    password  = "veryS3cretPassword"
+    password  = "veryS3cretPassword2"
+    private_networking = {
+      enabled            = true
+      shared_subnet_cidr = "10.245.0.0/24"
+      allowed_cidrs      = ["10.10.50.0/24", "10.245.0.0/24"]
+    }
   }
   service_config = {
-    disksize = 25
-    flavor   = "SCS-2V-4-50n"
-    region   = "dus2"
+    disksize   = 25
+    flavor     = "SCS-2V-4-50n"
+    region     = "dus2"
+    remote_ips = ["176.74.56.225/26"]
   }
 }
 
-output "db" {
-  value = [resource.sys11dbaas_database.postgresql.uuid, resource.sys11dbaas_database.postgresql.status]
+output "db-hostname" {
+  value = resource.sys11dbaas_database.db.application_config.private_networking.hostname
 }
 
+output "db-uuid" {
+  value = resource.sys11dbaas_database.postgresql.uuid
+}
+
+output "db-status" {
+  value = resource.sys11dbaas_database.postgresql.status
+}
+
+output "db-subnet-id" {
+  value = resource.sys11dbaas_database.postgresql.application_config.private_networking.shared_subnet_id
+}
+
+output "db-network-id" {
+  value = resource.sys11dbaas_database.postgresql.application_config.private_networking.shared_network_id
+}
