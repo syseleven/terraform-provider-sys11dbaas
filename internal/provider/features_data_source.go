@@ -3,8 +3,8 @@ package provider
 import (
 	"context"
 	"fmt"
-	"maps"
 	"slices"
+	"strings"
 
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/datasource/schema"
@@ -105,7 +105,7 @@ func (d *FeaturesDataSource) Read(ctx context.Context, req datasource.ReadReques
 	resp.Diagnostics.Append(req.Config.Get(ctx, &state)...)
 
 	if state.Type == "postgresql" {
-		features, err := d.client.ListFeatures(ctx)
+		features, err := d.client.ListFeatures(ctx, d.organization.ValueString(), d.project.ValueString())
 		if err != nil {
 			resp.Diagnostics.AddError(
 				"Unable to Read features",
@@ -114,10 +114,12 @@ func (d *FeaturesDataSource) Read(ctx context.Context, req datasource.ReadReques
 			return
 		}
 
-		for _, name := range slices.Sorted(maps.Keys(features)) {
+		for _, feature := range slices.SortedFunc(slices.Values(features), func(a, b v2.Feature) int {
+			return strings.Compare(a.Id, b.Id)
+		}) {
 			featureState := FeatureModel{
-				Name:    types.StringValue(name),
-				Default: types.StringValue(features[name]),
+				Name:    types.StringValue(feature.Id),
+				Default: types.StringValue(string(feature.Default)),
 			}
 
 			state.Features = append(state.Features, featureState)

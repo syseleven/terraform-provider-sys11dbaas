@@ -24,7 +24,3 @@ resource "sys11dbaas_database" "postgresql" {
     region   = "dus2"
   }
 }
-
-output "effective_features" {
-  value = sys11dbaas_database.postgresql.application_config.effective_features
-}

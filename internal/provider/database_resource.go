@@ -22,7 +22,6 @@ import (
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64default"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/int64planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/listplanmodifier"
-	"github.com/hashicorp/terraform-plugin-framework/resource/schema/mapplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/objectplanmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/planmodifier"
 	"github.com/hashicorp/terraform-plugin-framework/resource/schema/stringdefault"
@@ -148,7 +147,6 @@ type ApplicationConfigModel struct {
 	ApplicationConfigType types.String `tfsdk:"type"`
 	Version               types.String `tfsdk:"version"`
 	Features              types.Map    `tfsdk:"features"`
-	EffectiveFeatures     types.Map    `tfsdk:"effective_features"`
 }
 
 func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
@@ -170,9 +168,6 @@ func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
 		"type":    types.StringType,
 		"version": types.StringType,
 		"features": types.MapType{
-			ElemType: types.StringType,
-		},
-		"effective_features": types.MapType{
 			ElemType: types.StringType,
 		},
 	}
@@ -836,7 +831,6 @@ func (r *DatabaseResource) MoveState(ctx context.Context) []resource.StateMover 
 				targetApplicationConfig.ApplicationConfigType = sourceApplicationConfig.ApplicationConfigType
 				targetApplicationConfig.Version = sourceApplicationConfig.Version
 				targetApplicationConfig.Features = types.MapNull(types.StringType)
-				targetApplicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
 
 				var diags diag.Diagnostics
 				targetStateModel.ApplicationConfig, diags = types.ObjectValueFrom(ctx, targetApplicationConfig.AttributeTypes(), targetApplicationConfig)
@@ -1014,17 +1008,6 @@ func schemaV0(ctx context.Context) schema.Schema {
 						Description: "Feature for PostgreSQL database.",
 						Validators: []validator.Map{
 							mapvalidator.ValueStringsAre(stringvalidator.OneOf("on", "off")),
-						},
-					},
-					"effective_features": schema.MapAttribute{
-						ElementType: types.StringType,
-						Computed:    true,
-						Description: "The applied feature state for an individual instance of a database.",
-						Validators: []validator.Map{
-							mapvalidator.ValueStringsAre(stringvalidator.OneOf("on", "off")),
-						},
-						PlanModifiers: []planmodifier.Map{
-							mapplanmodifier.UseStateForUnknown(),
 						},
 					},
 					"private_networking": schema.SingleNestedAttribute{
@@ -1314,7 +1297,6 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		}
 	} else {
 		applicationConfig.Features = types.MapNull(types.StringType)
-		applicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
 		applicationConfig.Instances = types.Int64PointerValue(db.ApplicationConfig.Instances)
 		applicationConfig.ApplicationConfigType = types.StringValue(db.ApplicationConfig.Type)
 		applicationConfig.Version = types.StringValue(db.ApplicationConfig.Version)
@@ -1435,10 +1417,10 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 
 	if db.ApplicationConfig.Features != nil {
 		var conversionDiags []diag.Diagnostic
-		applicationConfig.EffectiveFeatures, conversionDiags = types.MapValueFrom(ctx, types.StringType, *db.ApplicationConfig.Features)
+		applicationConfig.Features, conversionDiags = types.MapValueFrom(ctx, types.StringType, *db.ApplicationConfig.Features)
 		diags.Append(conversionDiags...)
 	} else {
-		applicationConfig.EffectiveFeatures = types.MapNull(types.StringType)
+		applicationConfig.Features = types.MapNull(types.StringType)
 	}
 
 	model.Uuid = types.StringValue(db.Uuid)
