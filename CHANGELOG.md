@@ -1,6 +1,8 @@
 # CHANGELOG
 
-## 0.4.0 (Unreleased)
+## 1.0.0 (Unreleased)
+
+## 0.4.0
 
 ### NOTES
 
