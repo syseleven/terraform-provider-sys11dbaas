@@ -1,4 +1,4 @@
-resource "sys11dbaas_database_v2" "db" {
+resource "sys11dbaas_database" "db" {
   name = "example-private-networking-vm"
   application_config = {
     instances = 1
@@ -21,5 +21,5 @@ resource "sys11dbaas_database_v2" "db" {
 
 resource "openstack_networking_router_interface_v2" "routerint_db" {
   router_id = openstack_networking_router_v2.router.id
-  subnet_id = resource.sys11dbaas_database_v2.db.application_config.private_networking.shared_subnet_id
+  subnet_id = resource.sys11dbaas_database.db.application_config.private_networking.shared_subnet_id
 }
