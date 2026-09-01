@@ -1,6 +1,10 @@
 # CHANGELOG
 
-## 1.0.0 (Unreleased)
+## 0.4.2 (Unreleased)
+
+## 0.4.1
+
+This release is a documentation release only.
 
 ## 0.4.0
 
