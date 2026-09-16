@@ -1334,8 +1334,6 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		var conversionDiags []diag.Diagnostic
 		applicationConfig.Features, conversionDiags = types.MapValueFrom(ctx, types.StringType, *db.ApplicationConfig.Features)
 		diags.Append(conversionDiags...)
-	} else {
-		applicationConfig.Features = types.MapNull(types.StringType)
 	}
 
 	model.Uuid = types.StringValue(db.Uuid)
