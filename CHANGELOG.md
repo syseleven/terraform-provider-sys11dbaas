@@ -2,6 +2,9 @@
 
 ## 1.0.0 (Unreleased)
 
+### FEATRUES
+* add support for database parameters
+
 ## 0.4.0
 
 ### NOTES
