@@ -6,6 +6,9 @@
 
 This release is a documentation release only.
 
+### FEATRUES
+* add support for database parameters
+
 ## 0.4.0
 
 ### NOTES

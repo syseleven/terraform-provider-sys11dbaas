@@ -122,11 +122,22 @@ Required:
 Optional:
 
 - `features` (Map of String) Feature for PostgreSQL database.
+- `parameters` (Attributes) (see [below for nested schema](#nestedatt--application_config--parameters))
 - `password` (String, Sensitive) Password for the admin user.
 - `private_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--private_networking))
 - `public_networking` (Attributes) (see [below for nested schema](#nestedatt--application_config--public_networking))
 - `recovery` (Attributes) (see [below for nested schema](#nestedatt--application_config--recovery))
 - `scheduled_backups` (Attributes) Scheduled backups policy for the database. (see [below for nested schema](#nestedatt--application_config--scheduled_backups))
+
+<a id="nestedatt--application_config--parameters"></a>
+### Nested Schema for `application_config.parameters`
+
+Optional:
+
+- `log_connections` (Boolean)
+- `log_disconnections` (Boolean)
+- `max_connections` (Number)
+
 
 <a id="nestedatt--application_config--private_networking"></a>
 ### Nested Schema for `application_config.private_networking`

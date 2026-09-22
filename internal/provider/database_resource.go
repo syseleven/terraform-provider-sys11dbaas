@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"regexp"
+	"strconv"
 	"time"
 
 	"github.com/hashicorp/terraform-plugin-framework-timetypes/timetypes"
@@ -147,6 +148,7 @@ type ApplicationConfigModel struct {
 	ApplicationConfigType types.String `tfsdk:"type"`
 	Version               types.String `tfsdk:"version"`
 	Features              types.Map    `tfsdk:"features"`
+	Parameters            types.Object `tfsdk:"parameters"`
 }
 
 func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
@@ -169,6 +171,9 @@ func (m ApplicationConfigModel) AttributeTypes() map[string]attr.Type {
 		"version": types.StringType,
 		"features": types.MapType{
 			ElemType: types.StringType,
+		},
+		"parameters": types.ObjectType{
+			AttrTypes: PostgreSQLParametersModel{}.AttributeTypes(),
 		},
 	}
 }
@@ -194,6 +199,20 @@ func (m ServiceConfigModel) AttributeTypes() map[string]attr.Type {
 		},
 		"region": types.StringType,
 		"type":   types.StringType,
+	}
+}
+
+type PostgreSQLParametersModel struct {
+	LogConnections    types.Bool  `tfsdk:"log_connections"`
+	LogDisconnections types.Bool  `tfsdk:"log_disconnections"`
+	MaxConnections    types.Int64 `tfsdk:"max_connections"`
+}
+
+func (m PostgreSQLParametersModel) AttributeTypes() map[string]attr.Type {
+	return map[string]attr.Type{
+		"log_connections":    types.BoolType,
+		"log_disconnections": types.BoolType,
+		"max_connections":    types.Int64Type,
 	}
 }
 
@@ -453,6 +472,21 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 		}
 	}
 
+	var parameters *database.PostgreSQLParametersRequest
+	if !applicationConfig.Parameters.IsUnknown() && !applicationConfig.Parameters.IsNull() {
+		var postgreSQLParametersModel *PostgreSQLParametersModel
+		resp.Diagnostics.Append(applicationConfig.Parameters.As(ctx, &postgreSQLParametersModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		parameters = &database.PostgreSQLParametersRequest{
+			LogConnections:    optionalBoolToPostgresString(postgreSQLParametersModel.LogConnections.ValueBoolPointer()),
+			LogDisconnections: optionalBoolToPostgresString(postgreSQLParametersModel.LogDisconnections.ValueBoolPointer()),
+			MaxConnections:    optionalInt64ToString(postgreSQLParametersModel.MaxConnections.ValueInt64Pointer()),
+		}
+	}
+
 	createRequest := database.PostgreSQLCreateRequest{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueStringPointer(),
@@ -473,6 +507,7 @@ func (r *DatabaseResource) Create(ctx context.Context, req resource.CreateReques
 			PublicNetworking:  publicNetworking,
 			Recovery:          recovery,
 			Features:          features,
+			Parameters:        parameters,
 		},
 	}
 
@@ -691,6 +726,21 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 		}
 	}
 
+	var parameters *database.PostgreSQLParametersRequest
+	if !applicationConfig.Parameters.IsUnknown() && !applicationConfig.Parameters.IsNull() {
+		var postgreSQLParametersModel *PostgreSQLParametersModel
+		resp.Diagnostics.Append(applicationConfig.Parameters.As(ctx, &postgreSQLParametersModel, basetypes.ObjectAsOptions{})...)
+		if resp.Diagnostics.HasError() {
+			return
+		}
+
+		parameters = &database.PostgreSQLParametersRequest{
+			LogConnections:    optionalBoolToPostgresString(postgreSQLParametersModel.LogConnections.ValueBoolPointer()),
+			LogDisconnections: optionalBoolToPostgresString(postgreSQLParametersModel.LogDisconnections.ValueBoolPointer()),
+			MaxConnections:    optionalInt64ToString(postgreSQLParametersModel.MaxConnections.ValueInt64Pointer()),
+		}
+	}
+
 	updateRequest := database.PostgreSQLCreateRequest{
 		Name:        plan.Name.ValueString(),
 		Description: plan.Description.ValueStringPointer(),
@@ -711,6 +761,7 @@ func (r *DatabaseResource) Update(ctx context.Context, req resource.UpdateReques
 			PublicNetworking:  publicNetworking,
 			Recovery:          recovery,
 			Features:          features,
+			Parameters:        parameters,
 		},
 	}
 
@@ -1008,6 +1059,36 @@ func schemaV0(ctx context.Context) schema.Schema {
 						Description: "Feature for PostgreSQL database.",
 						Validators: []validator.Map{
 							mapvalidator.ValueStringsAre(stringvalidator.OneOf("on", "off")),
+						},
+					},
+					"parameters": schema.SingleNestedAttribute{
+						Optional: true,
+						Computed: true,
+						Attributes: map[string]schema.Attribute{
+							"log_connections": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"log_disconnections": schema.BoolAttribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Bool{
+									boolplanmodifier.UseStateForUnknown(),
+								},
+							},
+							"max_connections": schema.Int64Attribute{
+								Optional: true,
+								Computed: true,
+								PlanModifiers: []planmodifier.Int64{
+									int64planmodifier.UseStateForUnknown(),
+								},
+							},
+						},
+						PlanModifiers: []planmodifier.Object{
+							objectplanmodifier.UseNonNullStateForUnknown(),
 						},
 					},
 					"private_networking": schema.SingleNestedAttribute{
@@ -1421,6 +1502,17 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		diags.Append(conversionDiags...)
 	}
 
+	if db.ApplicationConfig.Parameters != nil {
+		postgreSQLParameters := PostgreSQLParametersModel{
+			LogConnections:    types.BoolPointerValue(postgresStringToOptionalBool(db.ApplicationConfig.Parameters.LogConnections)),
+			LogDisconnections: types.BoolPointerValue(postgresStringToOptionalBool(db.ApplicationConfig.Parameters.LogDisconnections)),
+			MaxConnections:    types.Int64PointerValue(postgresStringToOptionalInt64(db.ApplicationConfig.Parameters.MaxConnections)),
+		}
+		objectValue, conversionDiags := types.ObjectValueFrom(ctx, postgreSQLParameters.AttributeTypes(), postgreSQLParameters)
+		diags.Append(conversionDiags...)
+		applicationConfig.Parameters = objectValue
+	}
+
 	model.Uuid = types.StringValue(db.Uuid)
 	model.Name = types.StringValue(db.Name)
 	model.Description = types.StringPointerValue(db.Description)
@@ -1484,4 +1576,47 @@ func (m *allowedCidrModifier) Description(context.Context) string {
 
 func (m *allowedCidrModifier) MarkdownDescription(context.Context) string {
 	return "Activates public_networking if legacy remote_ips is specified."
+}
+
+func optionalBoolToPostgresString(value *bool) *string {
+	if value == nil {
+		return nil
+	}
+
+	if *value {
+		return new("on")
+	}
+
+	return new("off")
+}
+
+func postgresStringToOptionalBool(value *string) *bool {
+	if value == nil {
+		return nil
+	}
+
+	if *value == "on" {
+		return new(true)
+	}
+	return new(false)
+}
+
+func optionalInt64ToString(value *int64) *string {
+	if value == nil {
+		return nil
+	}
+
+	return new(strconv.FormatInt(*value, 10))
+}
+
+func postgresStringToOptionalInt64(value *string) *int64 {
+	if value == nil {
+		return nil
+	}
+
+	val, err := strconv.ParseInt(*value, 10, 64)
+	if err != nil {
+		return nil
+	}
+	return &val
 }
