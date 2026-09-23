@@ -1,6 +1,12 @@
 # CHANGELOG
 
-## 0.4.2 (Unreleased)
+## 0.5.0
+
+### FEATRUES
+* add support for database parameters
+
+### BUG FIXES
+* fix: do not set features if it's not present in the api response
 
 ## 0.4.1
 
