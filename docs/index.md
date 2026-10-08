@@ -37,6 +37,7 @@ Additional examples can be found [here](https://github.com/syseleven/terraform-p
 - `api_key` (String) API key or service account token to use for authentication to the DBaaS API. If omitted, the `SYS11DBAAS_API_KEY` environment variable is used.
 - `organization` (String) ID of your organization. If omitted, the `SYS11DBAAS_ORGANIZATION` environment variable is used.
 - `project` (String) ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.
+- `region` (String) Region of your project. If omitted, the `SYS11DBAAS_REGION` environment variable is used.
 - `url` (String) URL of the DBaaS API. If omitted, the `SYS11DBAAS_URL` environment variable is used. Otherwise fallbacks to https://dbaas.apis.syseleven.de
 - `wait_for_creation` (Boolean) Whether to wait for the service to be created. If omitted, the `SYS11DBAAS_WAIT_FOR_CREATION` environment variable is used. Defaults to true
 

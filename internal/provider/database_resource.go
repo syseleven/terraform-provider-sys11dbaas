@@ -237,6 +237,7 @@ type DatabaseResource struct {
 	client          *database.TypedClient
 	project         types.String
 	organization    types.String
+	region          types.String
 	waitForCreation types.Bool
 }
 
@@ -268,6 +269,7 @@ func (r *DatabaseResource) Configure(_ context.Context, req resource.ConfigureRe
 	r.client = providerData.client.V2()
 	r.organization = providerData.organization
 	r.project = providerData.project
+	r.region = providerData.region
 	r.waitForCreation = providerData.waitForCreation
 }
 
@@ -283,6 +285,37 @@ func (r DatabaseResource) ConfigValidators(ctx context.Context) []resource.Confi
 
 			path.MatchRoot("application_config").AtName("public_networking"),
 		),
+	}
+}
+
+func (r *DatabaseResource) ModifyPlan(ctx context.Context, req resource.ModifyPlanRequest, res *resource.ModifyPlanResponse) {
+	if req.Plan.Raw.IsNull() {
+		return
+	}
+
+	regionPath := path.Root("service_config").AtName("region")
+
+	var target types.String
+	res.Diagnostics.Append(req.Plan.GetAttribute(ctx, regionPath, &target)...)
+	if res.Diagnostics.HasError() {
+		return
+	}
+
+	if target.IsNull() || target.IsUnknown() {
+		if r.region.ValueString() == "" {
+			res.Diagnostics.AddAttributeError(
+				regionPath,
+				"Missing Region Configuration",
+				"Region was omitted in the resource configuration and no default region was configured at the provider level.",
+			)
+			return
+		}
+
+		// Set the region to the provider's configured region
+		res.Diagnostics.Append(res.Plan.SetAttribute(ctx, regionPath, r.region)...)
+		if res.Diagnostics.HasError() {
+			return
+		}
 	}
 }
 
@@ -1220,8 +1253,12 @@ func schemaV0(ctx context.Context) schema.Schema {
 						Description:        "List of IP addresses, that should be allowed to connect to the database.",
 					},
 					"region": schema.StringAttribute{
-						Required:    true,
-						Description: "Region for the database.",
+						Optional:    true,
+						Computed:    true,
+						Description: "Region for the database. If omitted the provider region will be used instead.",
+						Validators: []validator.String{
+							stringvalidator.OneOf("ham1", "dus2"),
+						},
 					},
 					"type": schema.StringAttribute{
 						Optional:    true,
