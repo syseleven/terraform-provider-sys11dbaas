@@ -231,11 +231,11 @@ Required:
 
 - `disksize` (Number) Disksize in GB.
 - `flavor` (String) VM flavor to use.
-- `region` (String) Region for the database.
 
 Optional:
 
 - `maintenance_window` (Attributes) Maintenance window in UTC. This will be a time window for updates and maintenance. If omitted, a random window will be generated. (see [below for nested schema](#nestedatt--service_config--maintenance_window))
+- `region` (String) Region for the database. If omitted the provider region will be used instead.
 - `remote_ips` (List of String, Deprecated) List of IP addresses, that should be allowed to connect to the database.
 - `type` (String) Type of the service you want to create (default `database`)
 

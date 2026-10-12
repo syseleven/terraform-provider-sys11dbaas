@@ -10,11 +10,13 @@ import (
 
 	sys11dbaassdk "github.com/syseleven/sys11dbaas-sdk"
 
+	"github.com/hashicorp/terraform-plugin-framework-validators/stringvalidator"
 	"github.com/hashicorp/terraform-plugin-framework/datasource"
 	"github.com/hashicorp/terraform-plugin-framework/path"
 	"github.com/hashicorp/terraform-plugin-framework/provider"
 	"github.com/hashicorp/terraform-plugin-framework/provider/schema"
 	"github.com/hashicorp/terraform-plugin-framework/resource"
+	"github.com/hashicorp/terraform-plugin-framework/schema/validator"
 	"github.com/hashicorp/terraform-plugin-framework/types"
 	"github.com/hashicorp/terraform-plugin-log/tflog"
 )
@@ -36,6 +38,7 @@ type Sys11DBaaSProviderModel struct {
 	ApiKey          types.String `tfsdk:"api_key"`
 	Project         types.String `tfsdk:"project"`
 	Organization    types.String `tfsdk:"organization"`
+	Region          types.String `tfsdk:"region"`
 	WaitForCreation types.Bool   `tfsdk:"wait_for_creation"`
 }
 
@@ -43,7 +46,8 @@ type sys11DBaaSProviderData struct {
 	client          *sys11dbaassdk.Client
 	project         types.String `tfsdk:"project"`
 	organization    types.String `tfsdk:"organization"`
-	waitForCreation types.Bool   `tfsdk:"wait_for_creation"`
+	region          types.String
+	waitForCreation types.Bool `tfsdk:"wait_for_creation"`
 }
 
 func (p *Sys11DBaaSProvider) Metadata(ctx context.Context, req provider.MetadataRequest, resp *provider.MetadataResponse) {
@@ -74,6 +78,14 @@ func (p *Sys11DBaaSProvider) Schema(_ context.Context, _ provider.SchemaRequest,
 				Required:    false,
 				Optional:    true,
 				Description: "ID of your project. If omitted, the `SYS11DBAAS_PROJECT` environment variable is used.",
+			},
+			"region": schema.StringAttribute{
+				Required:    false,
+				Optional:    true,
+				Description: "Region of your project. If omitted, the `SYS11DBAAS_REGION` environment variable is used.",
+				Validators: []validator.String{
+					stringvalidator.OneOf("ham1", "dus2"),
+				},
 			},
 			"wait_for_creation": schema.BoolAttribute{
 				Required:    false,
@@ -177,6 +189,11 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 		waitForCreation = config.WaitForCreation.ValueBool()
 	}
 
+	region := os.Getenv("SYS11DBAAS_REGION")
+	if !config.Region.IsNull() {
+		region = config.Region.ValueString()
+	}
+
 	// If any of the expected configurations are missing, return
 	// errors with provider-specific guidance.
 
@@ -228,6 +245,7 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 	ctx = tflog.SetField(ctx, "sys11dbaas_api_key", apikey)
 	ctx = tflog.SetField(ctx, "sys11dbaas_organization", organization)
 	ctx = tflog.SetField(ctx, "sys11dbaas_project", project)
+	ctx = tflog.SetField(ctx, "sys11dbaas_region", region)
 	ctx = tflog.SetField(ctx, "sys11dbaas_wait_for_creation", waitForCreation)
 	ctx = tflog.MaskFieldValuesWithFieldKeys(ctx, "sys11dbaas_api_key")
 
@@ -253,12 +271,14 @@ func (p *Sys11DBaaSProvider) Configure(ctx context.Context, req provider.Configu
 		client:          client,
 		project:         types.StringValue(project),
 		organization:    types.StringValue(organization),
+		region:          types.StringValue(region),
 		waitForCreation: types.BoolValue(waitForCreation),
 	}
 	resp.ResourceData = &sys11DBaaSProviderData{
 		client:          client,
 		project:         types.StringValue(project),
 		organization:    types.StringValue(organization),
+		region:          types.StringValue(region),
 		waitForCreation: types.BoolValue(waitForCreation),
 	}
 

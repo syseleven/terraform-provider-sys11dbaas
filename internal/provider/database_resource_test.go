@@ -2,6 +2,7 @@ package provider
 
 import (
 	"fmt"
+	"regexp"
 	"testing"
 
 	"github.com/hashicorp/terraform-plugin-testing/helper/acctest"
@@ -328,6 +329,105 @@ resource "sys11dbaas_database" "test" {
 				),
 			},
 			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
+
+func TestDatabaseResource_RegionFallback(t *testing.T) {
+	testAccProviderConfig := func(defaultRegion string) string {
+		return fmt.Sprintf(`
+			provider "sys11dbaas" {
+				region = "%s"
+			}
+		`, defaultRegion)
+	}
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProviderConfig("ham1") + `
+					resource "sys11dbaas_database" "test" {
+					  name = "test"
+					  application_config = {
+					    instances = 1
+					    type      = "postgresql"
+					    version = 17.4
+					    password = "test_test_test_test"
+					    public_networking = {
+					      enabled            = true
+					    }
+					  }
+  	
+					  service_config = {
+					    disksize   = 25
+					    flavor     = "SCS-2V-4-50n"
+					  }
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("sys11dbaas_database.test", "service_config.region", "ham1"),
+				),
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: testAccProviderConfig("ham1") + `
+					resource "sys11dbaas_database" "test" {
+					  name = "test"
+					  application_config = {
+					    instances = 1
+					    type      = "postgresql"
+					    version = 17.4
+					    password = "test_test_test_test"
+					    public_networking = {
+					      enabled            = true
+					    }
+					  }
+  	
+					  service_config = {
+					    disksize   = 25
+					    region     = "dus2"
+					    flavor     = "SCS-2V-4-50n"
+					  }
+					}
+				`,
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("sys11dbaas_database.test", "service_config.region", "dus2"),
+				),
+			},
+		},
+	})
+
+	resource.Test(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			{
+				Config: `
+					resource "sys11dbaas_database" "test" {
+					  name = "test3"
+					  application_config = {
+					    instances = 1
+					    type      = "postgresql"
+					    version = 17.4
+					    password = "test_test_test_test"
+					    public_networking = {
+					      enabled            = true
+					    }
+					  }
+  	
+					  service_config = {
+					    disksize   = 25
+					    flavor     = "SCS-2V-4-50n"
+					  }
+					}
+				`,
+				ExpectError: regexp.MustCompile("Missing Region Configuration"),
+			},
 		},
 	})
 }
