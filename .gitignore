@@ -9,3 +9,5 @@ terraform-provider-sys11dbaas
 
 ssh_private.key
 .envrc
+
+.vscode
