@@ -431,3 +431,133 @@ func TestDatabaseResource_RegionFallback(t *testing.T) {
 		},
 	})
 }
+
+func TestDatabaseResource_Recovery(t *testing.T) {
+	resourceNameSource := acctest.RandomWithPrefix("create_recovery_source")
+	resourceNameRecovery := acctest.RandomWithPrefix("create_recovered_db")
+	resource.ParallelTest(t, resource.TestCase{
+		ProtoV6ProviderFactories: testAccProtoV6ProviderFactories,
+		Steps: []resource.TestStep{
+			// Create recovery Source DB
+			{
+				Config: providerConfig + fmt.Sprintf(`
+resource "sys11dbaas_database" "recovery_source" {
+	name = "%s"
+	application_config = {
+		instances = 1
+		type			= "postgresql"
+		version		= 17.4
+		password	= "test_test_test_test"
+		public_networking = {
+			enabled	= true
+		}
+	}
+	service_config = {
+		disksize	= 25
+		flavor		= "SCS-2V-4-50n"
+		region		= "dus2"
+	}
+}
+`, resourceNameSource),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("sys11dbaas_database.recovery_source", "name", resourceNameSource),
+					resource.TestCheckResourceAttr("sys11dbaas_database.recovery_source", "status", "ClusterIsReady"),
+				),
+			},
+			// Test conflicting target validation
+			{
+				Config: providerConfig + fmt.Sprintf(`
+resource "sys11dbaas_database" "recovery_source" {
+	name = "%s"
+	application_config = {
+		instances = 1
+		type			= "postgresql"
+		version		= 17.4
+		password	= "test_test_test_test"
+		public_networking = {
+			enabled	= true
+		}
+	}
+	service_config = {
+		disksize	= 25
+		flavor		= "SCS-2V-4-50n"
+		region		= "dus2"
+	}
+}
+	resource "sys11dbaas_database" "recovery" {
+	name = "%s"
+	application_config = {
+		instances = 1
+		type			= "postgresql"
+		version		= 17.4
+		password	= "test_test_test_test"
+		recovery	= {
+			source			= resource.sys11dbaas_database.recovery_source.uuid
+			target_time	= "2026-11-18T16:24:00.000Z"
+			target_name	= "restore_point"
+			target_lsn	= "000000010000000000000001"
+			target_xid	= "1004"
+		}
+		public_networking = {
+			enabled	= true
+		}
+	}
+	service_config = {
+		disksize	= 25
+		flavor		= "SCS-2V-4-50n"
+		region		= "dus2"
+	}
+}
+`, resourceNameSource, resourceNameRecovery),
+				ExpectError: regexp.MustCompile("These attributes cannot be configured together"),
+			},
+			// Test successfull full recovery (no target will recover to latest known backup state)
+			{
+				Config: providerConfig + fmt.Sprintf(`
+resource "sys11dbaas_database" "recovery_source" {
+	name = "%s"
+	application_config = {
+		instances = 1
+		type			= "postgresql"
+		version		= 17.4
+		password	= "test_test_test_test"
+		public_networking = {
+			enabled	= true
+		}
+	}
+	service_config = {
+		disksize	= 25
+		flavor		= "SCS-2V-4-50n"
+		region		= "dus2"
+	}
+}
+resource "sys11dbaas_database" "recovery" {
+	name = "%s"
+	application_config = {
+		instances = 1
+		type			= "postgresql"
+		version		= 17.4
+		password	= "test_test_test_test"
+		recovery	= {
+			source			= resource.sys11dbaas_database.recovery_source.uuid
+		}
+		public_networking = {
+			enabled	= true
+		}
+	}
+	service_config = {
+		disksize	= 25
+		flavor		= "SCS-2V-4-50n"
+		region		= "dus2"
+	}
+}
+`, resourceNameSource, resourceNameRecovery),
+				Check: resource.ComposeAggregateTestCheckFunc(
+					resource.TestCheckResourceAttr("sys11dbaas_database.recovery", "name", resourceNameRecovery),
+					resource.TestCheckResourceAttr("sys11dbaas_database.recovery", "status", "ClusterIsReady"),
+				),
+			},
+			// Delete testing automatically occurs in TestCase
+		},
+	})
+}
