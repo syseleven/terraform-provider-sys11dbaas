@@ -285,6 +285,14 @@ func (r DatabaseResource) ConfigValidators(ctx context.Context) []resource.Confi
 
 			path.MatchRoot("application_config").AtName("public_networking"),
 		),
+
+		// only one recovery target is allowed
+		resourcevalidator.Conflicting(
+			path.MatchRoot("application_config").AtName("recovery").AtName("target_lsn"),
+			path.MatchRoot("application_config").AtName("recovery").AtName("target_name"),
+			path.MatchRoot("application_config").AtName("recovery").AtName("target_time"),
+			path.MatchRoot("application_config").AtName("recovery").AtName("target_xid"),
+		),
 	}
 }
 
@@ -885,52 +893,27 @@ func schemaV0(ctx context.Context) schema.Schema {
 						Attributes: map[string]schema.Attribute{
 							"exclusive": schema.BoolAttribute{
 								Optional:    true,
-								Computed:    true,
 								Description: "Set to true, when the given target should be excluded.",
-								Default:     booldefault.StaticBool(false),
-								PlanModifiers: []planmodifier.Bool{
-									boolplanmodifier.UseStateForUnknown(),
-								},
 							},
 							"source": schema.StringAttribute{
-								Optional:    true,
-								Computed:    true,
+								Required:    true,
 								Description: "UUID of the source database.",
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
 							},
 							"target_lsn": schema.StringAttribute{
 								Optional:    true,
-								Computed:    true,
 								Description: "LSN of the write-ahead log location up to which recovery will proceed. target_* parameters are mutually exclusive.",
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
 							},
 							"target_name": schema.StringAttribute{
 								Optional:    true,
-								Computed:    true,
 								Description: "Named restore point (created with pg_create_restore_point()) to which recovery will proceed. target_* parameters are mutually exclusive.",
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
 							},
 							"target_time": schema.StringAttribute{
 								Optional:    true,
-								Computed:    true,
 								Description: "Time stamp up to which recovery will proceed, expressed in RFC 3339 format. target_* parameters are mutually exclusive.",
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
 							},
 							"target_xid": schema.StringAttribute{
 								Optional:    true,
-								Computed:    true,
 								Description: "Transaction ID up to which recovery will proceed. target_* parameters are mutually exclusive.",
-								PlanModifiers: []planmodifier.String{
-									stringplanmodifier.UseStateForUnknown(),
-								},
 							},
 						},
 						Optional: true,
@@ -1355,19 +1338,10 @@ func psqlGetResponseToModel(ctx context.Context, db database.PostgreSQLGetRespon
 		applicationConfig.ScheduledBackups = types.ObjectNull(ScheduleModel{}.AttributeTypes())
 	}
 
-	if db.ApplicationConfig.Recovery != nil {
-		recovery := RecoveryModel{
-			Exclusive:  types.BoolPointerValue(db.ApplicationConfig.Recovery.Exclusive),
-			Source:     types.StringPointerValue(db.ApplicationConfig.Recovery.Source),
-			TargetLsn:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetLsn),
-			TargetName: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetName),
-			TargetXid:  types.StringPointerValue(db.ApplicationConfig.Recovery.TargetXid),
-			TargetTime: types.StringPointerValue(db.ApplicationConfig.Recovery.TargetTime),
-		}
-		objectValue, conversionDiags := types.ObjectValueFrom(ctx, recovery.AttributeTypes(), recovery)
-		diags.Append(conversionDiags...)
-		applicationConfig.Recovery = objectValue
-	} else {
+	// Make sure we set the recovery block to the correct null object for all cases that don't specify any recovery
+	// otherwise we produce inconsistent results because our API does not ever return recovery information
+	// we have to keep recovery as a technical possible value in state so resources that do specify it can see it in their plan and react to changes
+	if db.ApplicationConfig.Recovery == nil && (applicationConfig.Recovery.IsNull() || applicationConfig.Recovery.IsUnknown()) {
 		applicationConfig.Recovery = types.ObjectNull(RecoveryModel{}.AttributeTypes())
 	}
 
